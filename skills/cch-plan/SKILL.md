@@ -49,6 +49,9 @@ ARGUMENTS를 파싱하여 시작 Phase를 결정한다.
    - 응답을 받은 후 `START_PHASE=1`
    - "Phase 1 (설계)부터 시작합니다."
 
+**검증:** 파일 경로가 감지된 경우, Read로 해당 파일의 존재 여부를 확인한다.
+파일이 존재하지 않으면 사용자에게 알리고 AskUserQuestion으로 올바른 경로를 재질문한다.
+
 감지 결과를 출력한다: "**Phase N부터 시작합니다** (감지된 입력: <요약>)"
 
 ---
@@ -215,6 +218,21 @@ docs/plans/YYYY-MM-DD-<topic>-impl.md
 **a. 현재 상태 읽기**
 
 `docs/TODO.md`를 Read로 읽는다.
+파일이 존재하지 않으면 아래 템플릿으로 새로 생성한다:
+```markdown
+# TODO: <프로젝트명>
+
+- 작성일: YYYY-MM-DD
+- 갱신일: YYYY-MM-DD
+- 상태: Phase 1 예정
+- 전체 항목: (없음)
+
+## Critical Path
+
+```
+(비어 있음)
+```
+```
 
 **b. 마지막 항목 ID 파싱**
 
@@ -229,7 +247,7 @@ docs/plans/YYYY-MM-DD-<topic>-impl.md
 
 **d. Critical Path 섹션 업데이트**
 
-Critical Path 블록의 마지막 줄 뒤에 새 Phase 라인을 추가한다:
+Critical Path 코드 블록(``` 로 감싸진 영역)의 닫는 ``` 바로 앞에 새 Phase 라인을 추가한다:
 ```
 Phase XX:  #N+1 → #N+2 → ... → #N+M
 ```
