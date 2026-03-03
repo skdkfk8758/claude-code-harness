@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * Plan Document Parser
  * Extracts structured data from CCH plan Markdown documents.
@@ -23,13 +22,15 @@ function extractWorkId(filename) {
  * Returns text between the heading and the next ## heading (or EOF).
  */
 function extractSection(content, heading) {
-  const pattern = new RegExp(
-    `^##\\s+${heading}\\s*$([\\s\\S]*?)(?=^##\\s|$(?!\\s))`,
-    "mi"
-  );
-  const match = content.match(pattern);
-  if (!match) return "";
-  return match[1].trim();
+  const escaped = heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const headingRe = new RegExp("^##\\s+" + escaped + "[^\\n]*$", "m");
+  const headingMatch = headingRe.exec(content);
+  if (!headingMatch) return "";
+  const start = headingMatch.index + headingMatch[0].length + 1;
+  const rest = content.slice(start);
+  const nextMatch = /^##\s/m.exec(rest);
+  const end = nextMatch ? nextMatch.index : rest.length;
+  return rest.slice(0, end).trim();
 }
 
 /**
@@ -88,11 +89,10 @@ export function parsePlanDocument(content, filename) {
 
   const criteriaSection = extractSection(content, "Acceptance Criteria");
 
-  // Extract tasks from content excluding the Acceptance Criteria section
-  const contentWithoutCriteria = criteriaSection
-    ? content.replace(criteriaSection, "")
-    : content;
-  const tasks = extractCheckboxes(contentWithoutCriteria);
+  // Extract tasks from content before the Acceptance Criteria section
+  const criteriaSplitIndex = content.search(/^##\s+Acceptance Criteria/mi);
+  const contentBeforeCriteria = criteriaSplitIndex >= 0 ? content.slice(0, criteriaSplitIndex) : content;
+  const tasks = extractCheckboxes(contentBeforeCriteria);
 
   const criteriaItems = criteriaSection
     ? extractCheckboxes(criteriaSection).map((c) => c.description)
@@ -101,7 +101,11 @@ export function parsePlanDocument(content, filename) {
     const lines = criteriaSection.split(/\r?\n/);
     for (const line of lines) {
       const m = line.match(/^[-*]\s+(.+)$/);
-      if (m) criteriaItems.push(m[1].trim());
+      if (m) {
+        const text = m[1].replace(/^\[[ xX]\]\s+/, "").trim();
+        if (/^(Step|Criterion)\s+\d+$/i.test(text)) continue;
+        criteriaItems.push(text);
+      }
     }
   }
 

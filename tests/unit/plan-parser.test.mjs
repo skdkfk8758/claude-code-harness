@@ -92,6 +92,7 @@ function testFullPlan() {
   assert.equal(result.acceptance_criteria.length, 3);
   assert.equal(result.acceptance_criteria[0], "로그인 성공 시 JWT 반환");
   assert.deepEqual(result.changed_files, ["src/auth/login.ts", "src/middleware/jwt.ts"]);
+  assert.equal(result.is_empty_template, false);
 
   console.log("  PASS: testFullPlan");
 }
@@ -102,6 +103,9 @@ function testEmptyTemplate() {
   assert.equal(result.work_id, "general");
   assert.equal(result.goal, "");
   assert.equal(result.is_empty_template, true);
+  // Template placeholders "Step 1" and "Criterion 1" should be filtered out
+  assert.equal(result.tasks.length, 0, "template placeholders should be filtered");
+  assert.equal(result.acceptance_criteria.length, 0, "template placeholders should be filtered");
 
   console.log("  PASS: testEmptyTemplate");
 }
@@ -111,6 +115,7 @@ function testMinimalPlan() {
 
   assert.equal(result.work_id, "quick-fix");
   assert.equal(result.goal, "버그 수정");
+  assert.equal(result.is_empty_template, false);
   assert.equal(result.tasks.length, 1);
   assert.deepEqual(result.changed_files, []);
 
