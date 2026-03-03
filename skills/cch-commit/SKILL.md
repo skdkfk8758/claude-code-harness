@@ -108,7 +108,7 @@ Step 4에서 생성된 커밋의 코드 파일을 자동으로 정리합니다.
 6. 변경이 없으면 "Simplify: 변경 없음" 기록 후 Step 6으로
 
 **실패 처리:**
-- 에이전트 오류 시: "Simplify: 오류로 스킵됨" 경고 출력, Step 6으로 계속
+- 에이전트가 에러를 반환하거나 응답하지 않으면: "Simplify: 오류로 스킵됨" 경고 출력, Step 6으로 계속
 - 변경 후 `git diff`로 확인한 파일에 비코드 파일이 섞여 있으면 코드 파일만 staging
 
 ### Step 6 - README 재생성
@@ -125,6 +125,7 @@ Step 4에서 생성된 커밋의 코드 파일을 자동으로 정리합니다.
    - `ls tests/` → 테스트 목록
 2. 각 스킬의 메타데이터 수집:
    - `skills/*/SKILL.md`의 frontmatter에서 `name`과 `description` 추출
+   - frontmatter가 없거나 `name`/`description`이 누락된 스킬은 건너뛰고 경고 출력
 3. `docs/PRD.md` 첫 번째 섹션에서 프로젝트 설명 추출
 4. 아래 템플릿에 수집된 정보를 채워 README.md 생성:
 
