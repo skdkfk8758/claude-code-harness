@@ -1,0 +1,21 @@
+{
+  "version": "0.1.0",
+  "locked_at": "2026-03-03T00:00:00Z",
+  "combos": {
+    "brainstorming": {
+      "source": "superpowers/brainstorming",
+      "migrated": true,
+      "file": "combos/brainstorming.md"
+    },
+    "tdd": {
+      "source": "superpowers/tdd",
+      "migrated": true,
+      "file": "combos/tdd.md"
+    },
+    "systematic-debugging": {
+      "source": "superpowers/systematic-debugging",
+      "migrated": true,
+      "file": "combos/systematic-debugging.md"
+    }
+  }
+}
