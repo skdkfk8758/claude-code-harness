@@ -2,6 +2,7 @@
 # v2 Resilience - 복구력/결함 허용 검증
 
 CCH="bash $ROOT_DIR/bin/cch"
+CCH_STATE_DIR="${CCH_STATE_DIR:-$ROOT_DIR/.claude/cch}"
 
 # Setup first
 $CCH setup &>/dev/null

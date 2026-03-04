@@ -115,7 +115,7 @@ _calculate_tier() {
 
 _cleanup_dir() {
   local dir="$1" pattern="$2" age_flag="$3" age_val="$4"
-  [[ -d "$dir" ]] || return 0
+  if [[ ! -d "$dir" ]]; then echo "0"; return 0; fi
   local count
   count=$(find "$dir" -name "$pattern" "$age_flag" "$age_val" 2>/dev/null | wc -l | tr -d ' ')
   if [[ "$count" -gt 0 ]]; then
