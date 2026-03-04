@@ -1,0 +1,29 @@
+{
+  "version": "1.0",
+  "slos": {
+    "code": {
+      "min_health_score": 80,
+      "required_sources": ["omc", "superpowers"],
+      "max_resolve_time_ms": 5000,
+      "alert_on": ["health_score_below_threshold", "required_source_missing"]
+    },
+    "plan": {
+      "min_health_score": 60,
+      "required_sources": ["superpowers"],
+      "max_resolve_time_ms": 3000,
+      "alert_on": ["health_score_below_threshold"]
+    },
+    "tool": {
+      "min_health_score": 50,
+      "required_sources": ["gptaku_plugins"],
+      "max_resolve_time_ms": 3000,
+      "alert_on": ["required_source_missing"]
+    },
+    "swarm": {
+      "min_health_score": 70,
+      "required_sources": ["ruflo"],
+      "max_resolve_time_ms": 8000,
+      "alert_on": ["health_score_below_threshold", "required_source_missing", "resolve_timeout"]
+    }
+  }
+}

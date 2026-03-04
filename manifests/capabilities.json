@@ -1,0 +1,51 @@
+{
+  "sources": {
+    "superpowers": {
+      "type": "external",
+      "description": "Core skill library",
+      "required": false,
+      "severity": "degraded",
+      "fallback_impact": "quality_gate_weakened"
+    },
+    "omc": {
+      "type": "external",
+      "alias": "oh-my-claudecode",
+      "description": "Claude Code enhancement layer",
+      "required": false,
+      "severity": "degraded",
+      "fallback_impact": "code_mode_degraded"
+    },
+    "ruflo": {
+      "type": "external",
+      "description": "Workflow and swarm orchestration",
+      "required": false,
+      "severity": "blocked",
+      "fallback_impact": "swarm_mode_blocked",
+      "skills": ["cch-rf-swarm", "cch-rf-sparc", "cch-rf-hive", "cch-rf-memory", "cch-rf-security", "cch-rf-doctor"]
+    },
+    "gptaku_plugins": {
+      "type": "external",
+      "description": "Tool integration plugins collection",
+      "required": false,
+      "severity": "degraded",
+      "fallback_impact": "tool_mode_degraded",
+      "skills": ["cch-gp-team", "cch-gp-pumasi", "cch-gp-skill-builder", "cch-gp-prd", "cch-gp-research", "cch-gp-docs", "cch-gp-mentor", "cch-gp-git-learn"]
+    },
+    "dot": {
+      "type": "experiment",
+      "alias": "dance-of-tal",
+      "description": "DOT experiment source (code mode only)",
+      "required": false,
+      "default_enabled": false,
+      "severity": "degraded",
+      "fallback_impact": "experiment_disabled"
+    },
+    "excalidraw": {
+      "type": "external",
+      "description": "Excalidraw diagram generation skill",
+      "required": false,
+      "severity": "degraded",
+      "fallback_impact": "diagram_generation_unavailable"
+    }
+  }
+}

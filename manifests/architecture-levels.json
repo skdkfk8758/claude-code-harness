@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "tdd": { "always_on": true },
+  "levels": {
+    "1": {
+      "name": "TDD Only",
+      "alias": "simple",
+      "description": "단순 프로젝트 (CRUD, 스크립트, CLI 도구)",
+      "structure": {
+        "required_dirs": ["tests"],
+        "optional_dirs": ["src", "lib"]
+      },
+      "rules": {
+        "test_required_before_commit": true,
+        "min_test_ratio": 0.5,
+        "enforce_ports_adapters": false,
+        "enforce_aggregates": false
+      }
+    },
+    "2": {
+      "name": "Clean Architecture + TDD",
+      "alias": "clean",
+      "description": "중간 복잡도 (포트/어댑터, 외부 연동)",
+      "structure": {
+        "required_dirs": [
+          "src/domain", "src/application",
+          "src/infrastructure", "src/interfaces",
+          "tests/unit", "tests/integration"
+        ],
+        "optional_dirs": ["src/shared", "tests/e2e"]
+      },
+      "rules": {
+        "test_required_before_commit": true,
+        "min_test_ratio": 0.7,
+        "enforce_ports_adapters": true,
+        "enforce_aggregates": false,
+        "domain_no_imports_from": ["infrastructure", "interfaces"]
+      }
+    },
+    "3": {
+      "name": "DDD + TDD",
+      "alias": "ddd",
+      "description": "복잡한 도메인 (Aggregate, Bounded Context, 이벤트)",
+      "structure": {
+        "required_dirs": [
+          "src/bounded-contexts", "src/shared-kernel",
+          "tests/unit", "tests/integration", "tests/domain"
+        ],
+        "bounded_context_layout": [
+          "domain/aggregates", "domain/entities",
+          "domain/value-objects", "domain/events",
+          "domain/repositories",
+          "application/commands", "application/queries",
+          "application/services",
+          "infrastructure/persistence", "infrastructure/messaging"
+        ]
+      },
+      "rules": {
+        "test_required_before_commit": true,
+        "min_test_ratio": 0.8,
+        "enforce_ports_adapters": true,
+        "enforce_aggregates": true,
+        "domain_no_imports_from": ["infrastructure", "interfaces", "application"]
+      }
+    }
+  }
+}
