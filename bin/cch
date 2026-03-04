@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-CCH_VERSION="0.1.0"
+CCH_VERSION="0.2.0"
 CCH_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 CCH_STATE_DIR="${CCH_STATE_DIR:-.claude/cch}"
 CCH_LIB_DIR="$CCH_ROOT/bin/lib"
