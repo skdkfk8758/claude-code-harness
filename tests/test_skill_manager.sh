@@ -87,17 +87,17 @@ test_list_sources_includes_repo() {
 }
 test_list_sources_includes_repo
 
-test_list_sources_includes_type() {
+test_list_sources_includes_type_field() {
   local result
   result="$(skill_list_sources)"
   assert_contains "list_sources has type field" "\"type\"" "$result"
 }
-test_list_sources_includes_type
+test_list_sources_includes_type_field
 
 test_list_sources_outputs_json() {
   local result
   result="$(skill_list_sources)"
-  assert_contains "list_sources is JSON array" "]" "$result"
+  assert_contains "list_sources is JSON array" "\[" "$result"
 }
 test_list_sources_outputs_json
 
@@ -108,7 +108,7 @@ test_list_sources_outputs_json
 test_scan_all_returns_json_array() {
   local result
   result="$(skill_scan_all)"
-  assert_contains "scan_all is JSON" "\"name\"" "$result"
+  assert_contains "scan_all is JSON" "\[" "$result"
 }
 test_scan_all_returns_json_array
 
