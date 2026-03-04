@@ -1368,14 +1368,14 @@
       "updated": 1,
       "link": null,
       "locked": false,
-      "text": "Mode | Health | Work Item\nDOT | Phase | Token Usage\nSummary | OMC HUD",
+      "text": "Mode | Health | Work Item\nDOT | Phase | Token Usage\nSummary",
       "fontSize": 14,
       "fontFamily": 3,
       "textAlign": "center",
       "verticalAlign": "middle",
       "baseline": 14,
       "containerId": "hud-elements",
-      "originalText": "Mode | Health | Work Item\nDOT | Phase | Token Usage\nSummary | OMC HUD",
+      "originalText": "Mode | Health | Work Item\nDOT | Phase | Token Usage\nSummary",
       "lineHeight": 1.25
     },
     {

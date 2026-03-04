@@ -96,7 +96,7 @@ OpenAI가 에이전트로 100만 줄 코드를 작성하며 도출한 핵심:
 │                 Adapter Layer (HRP)                   │
 │   Scan → Detect → Classify → Integrate               │
 │                                                       │
-│   omc? ──→ adapter     superpowers? ──→ adapter      │
+│   superpowers? ──→ adapter                           │
 │   codex? ──→ adapter   slack-mcp? ──→ adapter        │
 │   (감지→활성화, 없으면 코어 폴백)                     │
 └─────────────────────────────────────────────────────┘
@@ -141,7 +141,7 @@ OpenAI가 에이전트로 100만 줄 코드를 작성하며 도출한 핵심:
 │    pumasi, research, diagram)        │
 ├──────────────────────────────────────┤
 │  Tier 1: Enhanced Harness            │
-│  +omc +superpowers (감지시)          │
+│  +superpowers (감지시)               │
 │  → 멀티에이전트, TDD, brainstorm,    │
 │    code-review, parallel agents      │
 ├──────────────────────────────────────┤
@@ -159,10 +159,10 @@ OpenAI가 에이전트로 100만 줄 코드를 작성하며 도출한 핵심:
 | 프로젝트 초기화 | `cch init` (자체 스캔) | + 심층 분석 | + SPARC 방법론 |
 | 브레인스토밍 | brainstorm-lite (구조화 질문) | superpowers brainstorm | + 멀티모델 합의 |
 | 플래닝 | plan (자체 구현) | + superpowers write-plan | + hive 합의 기반 |
-| 구현 | 단일 에이전트 순차 | omc executor/deep-executor | + Codex/Gemini 병렬 |
+| 구현 | 단일 에이전트 순차 | superpowers executor | + Codex/Gemini 병렬 |
 | TDD | verify-lite (테스트 실행) | superpowers TDD 강제 | + 크로스 모델 검증 |
-| 코드 리뷰 | review-lite (체크리스트) | omc code-reviewer | + 보안 리뷰 |
-| 팀 실행 | 순차 파이프라인 | omc native teams (병렬) | + tmux 멀티 CLI |
+| 코드 리뷰 | review-lite (체크리스트) | superpowers code-reviewer | + 보안 리뷰 |
+| 팀 실행 | 순차 파이프라인 | superpowers native teams (병렬) | + tmux 멀티 CLI |
 | 커밋 | cch commit (자체) | + 자동 검증 | + 슬랙/디코 알림 |
 | 컨텍스트 관리 | CLAUDE.md 자동 생성 | + 에이전트별 컨텍스트 | + 라이브러리 문서 참조 |
 | GC | 상태 파일 정리 | + 컨텍스트 드리프트 감지 | + 자동 리팩터링 제안 |
@@ -231,8 +231,7 @@ Layer 5: Project Context
   "tier": 1,
   "capabilities": {
     "plugins": {
-      "oh-my-claudecode": { "version": "4.6.0", "status": "active" },
-      "superpowers": { "version": "1.2.0", "status": "new" }
+      "superpowers": { "version": "1.2.0", "status": "active" }
     },
     "mcp_servers": {
       "context7": { "tools": 2, "status": "active" },
@@ -269,9 +268,9 @@ Layer 5: Project Context
 
 **1. Tier Upgrade**
 ```
-omc 감지 → Tier 0 → Tier 1 자동 승격
+superpowers 감지 → Tier 0 → Tier 1 자동 승격
   → cch-brainstorm: brainstorm-lite → superpowers brainstorm
-  → cch-verify: self_verify → omc verifier agent
+  → cch-verify: self_verify → superpowers verifier agent
   → cch-team: 순차 → 병렬 에이전트
 ```
 
@@ -284,7 +283,7 @@ context7 감지 → cch-plan에 라이브러리 문서 자동 참조 추가
 
 **3. Workflow Composition**
 ```
-codex CLI + omc 감지 → "Claude + Codex 병렬 실행 워크플로우 활성화?"
+codex CLI + superpowers 감지 → "Claude + Codex 병렬 실행 워크플로우 활성화?"
 docker + CI 감지 → "컨테이너 기반 테스트 파이프라인 추가?"
 ```
 
@@ -306,8 +305,8 @@ superpowers TDD 감지 → PostToolUse(Bash)에 tdd-enforcer 훅 제안 (승인 
 {
   "reinforcements": [
     {
-      "id": "omc-core",
-      "detect": { "type": "plugin", "id": "oh-my-claudecode" },
+      "id": "superpowers-core",
+      "detect": { "type": "plugin", "id": "superpowers" },
       "tier_upgrade": 1,
       "risk": "safe",
       "enhancements": [
@@ -321,7 +320,7 @@ superpowers TDD 감지 → PostToolUse(Bash)에 tdd-enforcer 훅 제안 (승인 
           "target": "cch-verify",
           "action": "upgrade_backend",
           "from": "self_verify",
-          "to": "omc_verifier_agent"
+          "to": "superpowers_verifier_agent"
         },
         {
           "target": "cch-brainstorm",
@@ -521,9 +520,9 @@ Tier 0: Sequential Pipeline
   plan(자체) → implement(자체) → verify(자체)
   → 한 에이전트가 역할을 바꿔가며 순차 수행
 
-Tier 1: Parallel Agent Pipeline (omc 감지시)
+Tier 1: Parallel Agent Pipeline (superpowers 감지시)
   plan(planner) → implement(executor×N) → verify(verifier)
-  → omc native teams로 병렬 에이전트 실행
+  → superpowers native teams로 병렬 에이전트 실행
 
 Tier 2: Multi-CLI Pipeline (codex/gemini 감지시)
   plan(architect) → implement(claude+codex+gemini) → verify(verifier)
@@ -589,12 +588,10 @@ skills/
 │   └── cch-scan/          # 환경 스캔 (NEW, HRP Phase 1)
 │
 ├── guides/                # 설치 가이드 + 사용 가이드
-│   ├── guide-omc/         # omc 설치/설정/활용 가이드
 │   ├── guide-superpowers/ # superpowers 가이드
-│   └── guide-extensions/  # gptaku, ruflo, excalidraw 등
+│   └── guide-extensions/  # 기타 확장 가이드
 │
 └── adapters/              # Tier 1/2 어댑터 (HRP)
-    ├── adapter-omc/       # omc 감지 + 기능 연결
     ├── adapter-sp/        # superpowers 감지 + 기능 연결
     └── adapter-ext/       # CLI/MCP/외부 플러그인 감지
 ```
@@ -658,7 +655,7 @@ Step 2: 초기 설정
   [CCH] Tier 0 (Core Harness) 활성화
   [CCH] 설치된 플러그인: 없음
   [CCH] 사용 가능한 기능: init, commit, plan, todo, brainstorm, verify, review, team
-  [CCH] 💡 omc를 설치하면 멀티에이전트 기능이 활성화됩니다 (/cch-guide-omc)
+  [CCH] 💡 superpowers를 설치하면 멀티에이전트 기능이 활성화됩니다 (/cch-guide-superpowers)
 
 Step 3: 프로젝트 초기화
   > /cch-init
@@ -677,17 +674,17 @@ Step 4: 작업 시작
 ### 8.2 Tier 승격 경험
 
 ```
-$ claude plugin install oh-my-claudecode
+$ claude plugin install superpowers@superpowers-marketplace
 $ claude  (새 세션)
 
 [CCH] 환경 스캔 중...
 [CCH] 변화 감지:
-  ✅ oh-my-claudecode v4.6.0 설치됨 (NEW)
+  ✅ superpowers v1.2.0 설치됨 (NEW)
 
 [CCH] 자동 적용 (Safe):
   • Tier 0 → Tier 1 승격
   • cch-brainstorm: superpowers 브레인스토밍으로 강화
-  • cch-verify: omc verifier 에이전트로 강화
+  • cch-verify: superpowers verifier 에이전트로 강화
   • cch-team: 병렬 에이전트 실행 활성화
 
 [CCH] 승인 필요 (Moderate):
@@ -966,8 +963,8 @@ manifests/health-rules.json    policies/workflows.json     구조 변환
 {
   "mode": "code",
   "capabilities": {
-    "primary": ["omc", "superpowers"],
-    "secondary": ["gptaku_plugins", "ruflo"],
+    "primary": ["superpowers"],
+    "secondary": [],
     "fallback": []
   },
   "dot": { "eligible": true, "sources": ["dot"], "default": false }
@@ -1109,7 +1106,7 @@ scripts/lifecycle.mjs      # Node.js: GC, 세션 관리
 **Phase 2: HRP (1-2주)**
 - HRP 4단계 전체 구현 (Scan → Detect → Classify → Integrate)
 - reinforcements.json 작성
-- Tier 1 어댑터 구현 (omc, superpowers)
+- Tier 1 어댑터 구현 (superpowers)
 - 가이드 스킬 작성
 
 **Phase 3: Lifecycle & GC (1주)**
@@ -1157,7 +1154,7 @@ scripts/lifecycle.mjs      # Node.js: GC, 세션 관리
 ### 12.1 출시 조건
 
 1. Tier 0 코어 스킬 12개가 벤더 없이 완전 동작
-2. HRP가 omc/superpowers 감지시 Tier 1 자동 승격
+2. HRP가 superpowers 감지시 Tier 1 자동 승격
 3. `cch init`이 프로젝트를 분석하여 CLAUDE.md 자동 생성
 4. `cch scan`이 전체 환경을 스캔하고 delta 감지
 5. GC가 오래된 상태/로그를 자동 정리
@@ -1330,7 +1327,7 @@ input: topic (string, required)
 output: structured_ideas (markdown)
 tier_behavior:
   0: "내장 프롬프트 체인 (Claude 단독)"
-  1: "omc planner/analyst 연동"
+  1: "superpowers planner/analyst 연동"
   2: "멀티 에이전트 합의 (ralplan)"
 ```
 
@@ -1338,7 +1335,7 @@ tier_behavior:
 
 | # | 스킬 | Tier 0 동작 | Tier 1 확장 | Tier 2 확장 |
 |---|------|------------|------------|------------|
-| 1 | `cch-brainstorm` | 구조화된 프롬프트 체인 | omc planner 연동 | 멀티 에이전트 합의 |
+| 1 | `cch-brainstorm` | 구조화된 프롬프트 체인 | superpowers planner 연동 | 멀티 에이전트 합의 |
 | 2 | `cch-plan` | 마크다운 계획서 생성 | architect 에이전트 | consensus planning |
 | 3 | `cch-commit` | 변경 분석 + 커밋 | work-item 연동 | 자동 PR 생성 |
 | 4 | `cch-todo` | TODO.md CRUD | beads 연동 | 팀 태스크 동기화 |
@@ -1509,7 +1506,7 @@ Stage 3: Engine Layer (scripts/*.mjs)
 4. CLI: _load_policy("workflows.json") → brainstorm 워크플로우 로드
 5. CLI: _check_tier() → Tier 0/1/2 분기
 6. Engine(Tier0): scripts/brainstorm-engine.mjs → 프롬프트 체인 실행
-7. Engine(Tier1): scripts/brainstorm-engine.mjs → omc planner 에이전트 호출
+7. Engine(Tier1): scripts/brainstorm-engine.mjs → superpowers planner 에이전트 호출
 8. Hook: PostToolUse(Skill) → 결과 로깅
 ```
 
@@ -1778,6 +1775,51 @@ policies/
 | 테스트 | 12개 | 7개 | 42% |
 | 훅 스크립트 | 7개 | 3개 | 57% |
 | **전체 코드베이스** | **~100%** | **~40%** | **~60% 감소** |
+
+---
+
+## TODO
+
+### Phase 0: Foundation
+- [ ] v2 디렉토리 구조 생성 (`skills/core/`, `engines/`, `policies/`, `profiles/presets/`)
+- [ ] HRP 스캐너 프로토타입 구현 (`scripts/hrp-scanner.mjs`)
+- [ ] Tier 0 코어 스킬 3개 작성 (`cch-setup`, `cch-status`, `cch-scan`)
+- [ ] v1 백업 메커니즘 구현 (`.claude/cch/v1-backup/`)
+- [ ] Version Gate 패턴 구현 (`.claude/cch/version` 파일)
+
+### Phase 1: Core Engine
+- [ ] Context Engine 구현 (`engines/context-engine.mjs`) — 프로젝트 분석, Progressive Disclosure
+- [ ] Policy Engine 구현 (`engines/policy-engine.mjs`) — 모드, 워크플로우 규칙, 게이트
+- [ ] Tier 0 코어 스킬 완성 (12개): brainstorm, plan, commit, todo, verify, review, debug, tdd, setup, status, gc, scan
+- [ ] v1 sources 관련 코드 제거 (`bin/lib/sources.sh`, `manifests/sources.json`)
+
+### Phase 2: HRP
+- [ ] HRP 4단계 구현: Scanner → Detector → Classifier → Integrator (`engines/hrp/`)
+- [ ] `manifests/reinforcements.json` 작성 (superpowers, codex 매핑)
+- [ ] Tier 1 어댑터 구현 (`skills/adapters/`: adapter-sp, adapter-ext)
+- [ ] 가이드 스킬 작성 (`skills/guides/`: guide-superpowers, guide-extensions)
+
+### Phase 3: Lifecycle & GC
+- [ ] Lifecycle Engine 구현 (`engines/lifecycle-engine.mjs`) — 세션 상태, GC, 팀 조율
+- [ ] GC 시스템 구현 (상태 파일 정리, 드리프트 감지)
+- [ ] 팀 파이프라인 구현 (Tier별 Sequential/Parallel/Multi-CLI)
+- [ ] Context Replay 구현 (`summary-writer.mjs` 확장 + `sessions/latest.json`)
+
+### Phase 4: Polish & Migration
+- [ ] v1→v2 자동 마이그레이션 도구 구현 (`cch setup --migrate-v1`)
+- [ ] `bin/cch` 슬리밍 (2,069줄 → ~500줄)
+- [ ] 매니페스트 정리 (14개 → 4개)
+- [ ] 벤더 래퍼 스킬 33개 삭제 + 호환성 리다이렉트 생성
+- [ ] 훅 최적화 (7개 → 3개)
+- [ ] 문서 업데이트 (Architecture, PRD, Roadmap)
+- [ ] 통합 테스트 (Feature Parity Matrix 기반)
+- [ ] Harness Profiles 구현 (`profiles/presets/` — web-frontend, backend-api, monorepo)
+
+### 검증
+- [ ] Tier 0 코어 스킬 12개 벤더 없이 완전 동작 확인
+- [ ] HRP 스캔 성능 5초 이내 검증
+- [ ] v1→v2 마이그레이션 5분 이내 완료 검증
+- [ ] 스킬 테스트 커버리지 80% 이상 (최소 27개 테스트 케이스)
 
 ---
 

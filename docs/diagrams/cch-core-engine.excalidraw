@@ -863,14 +863,14 @@
       "updated": 1,
       "link": null,
       "locked": false,
-      "text": "code\nomc, superpowers +DOT",
+      "text": "code\nsuperpowers +DOT",
       "fontSize": 13,
       "fontFamily": 3,
       "textAlign": "center",
       "verticalAlign": "middle",
       "baseline": 13,
       "containerId": "mode-code",
-      "originalText": "code\nomc, superpowers +DOT",
+      "originalText": "code\nsuperpowers +DOT",
       "lineHeight": 1.25
     },
     {

@@ -137,7 +137,7 @@ Skills that execute plans and implement features.
 | `cch-sp-tdd` | Foundation discipline for all implementation |
 | `cch-sp-verify` | Gate before every completion claim |
 
-### tool mode
+### on-demand (any mode)
 Utility skills invoked on-demand during any mode.
 
 | Skill | Rationale |
@@ -146,13 +146,6 @@ Utility skills invoked on-demand during any mode.
 | `cch-sp-code-review` | On-demand review dispatching |
 | `cch-sp-receive-review` | On-demand review evaluation |
 | `cch-sp-parallel-agents` | On-demand parallel dispatch for independent tasks |
-
-### swarm mode
-Skills that coordinate multiple concurrent agents.
-
-| Skill | Rationale |
-|---|---|
-| `cch-sp-parallel-agents` | Direct parallel dispatch without ruflo overhead |
 | `cch-sp-subagent-dev` | Per-task subagent orchestration with quality gates |
 
 ---
@@ -276,6 +269,32 @@ cch-rf-sparc  +  cch-sp-tdd  +  cch-sp-verify  (inject quality gates into each S
 | `cch-sp-subagent-dev` | `cch-rf-sparc` | SPARC has 5 fixed phases; subagent-dev is flexible per-task |
 | `cch-sp-finish-branch` | `cch-pr` | Finish-branch handles the full decision tree; cch-pr is PR-only |
 | `cch-sp-verify` | implicit in `cch-commit` | Verify is more explicit and enforceable |
+
+## TODO
+
+### High Priority (즉시 적용)
+- [ ] `cch-sp-brainstorm` CCH 워크플로우 진입점으로 통합 — 비사소한 기능 요청 시 자동 호출
+- [ ] `cch-sp-debug` 버그/테스트 실패 시 자동 호출 연동
+- [ ] `cch-sp-tdd` 구현 시 red-green-refactor 강제
+- [ ] `cch-sp-verify` `cch-commit`, `cch-pr` 전 필수 호출로 설정
+
+### Medium Priority (워크플로우 완성)
+- [ ] `cch-sp-write-plan` plan-bridge 파이프라인에 통합
+- [ ] `cch-sp-subagent-dev` per-task 서브에이전트 + 2단계 리뷰 실행 경로 구성
+- [ ] `cch-sp-git-worktree` 실행 계획 전 필수 전제조건으로 연결
+
+### Lower Priority (기존 CCH 스킬과 중복)
+- [ ] `cch-sp-parallel-agents` cch-team/cch-rf-swarm과 역할 정리
+- [ ] `cch-sp-finish-branch` cch-pr과 통합 또는 역할 분리
+- [ ] `cch-sp-execute-plan` subagent-dev와 선택 기준 문서화
+- [ ] `cch-sp-code-review` / `cch-sp-receive-review` 리뷰 품질 게이트 구성
+
+### 프로파일 업데이트
+- [ ] `profiles/plan.json`에 `cch-sp-brainstorm`, `cch-sp-write-plan` 추가
+- [ ] `profiles/code.json`에 실행 스킬 8개 추가 (git-worktree, execute-plan, subagent-dev, finish-branch, tdd, verify, code-review, receive-review)
+- [ ] `profiles/code.json`에 on-demand 스킬 `cch-sp-debug`, `cch-sp-parallel-agents` 추가
+
+---
 
 ### Recommended Priority for Integration
 High priority (immediate value, no overlap):

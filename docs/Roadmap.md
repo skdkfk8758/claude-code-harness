@@ -1,143 +1,71 @@
-# Roadmap: Claude Code Harness (Framework Upgrade)
+# Roadmap: Claude Code Harness v2
 
-- 기준일: 2026-03-03
-- 버전: v2.0
-- 현재 상태: Active (Week-1 Execution)
-- 현재 마감: 2026-03-10 (화)
+- 버전: v2.1
+- 갱신일: 2026-03-04
+- 현재 상태: v2.0 Renewal Complete
 
-## 1) 완료된 기반 마일스톤 (2026-03-03 기준)
+## 1) 완료된 마일스톤
 
-다음 기반은 구현/검증 완료로 간주한다. (상세 상태: `bd list --label "phase:1"` 등으로 조회)
+### v1 → v2 리뉴얼 (2026-03-03 ~ 2026-03-04)
 
-1. M0: Design Consolidation
-2. M1: Plugin Contract First
-3. M2: Install Lifecycle MVP
-4. M2.5: Work Record Model
-5. M3: Release Bundle Hardening
-6. M4: Baseline Engine
-7. M4.2: Test Matrix Foundation (일부 레이어 실파일 보강 필요)
-8. M4.5: DOT Critical PoC Gate
-9. M5: DOT Selective Migration
-10. M6: Update Governance
+전체 Phase 0~11 완료. 52개 Bead 전부 클로즈.
 
-## 2) 현재 실행 마일스톤: Week-1 (P0 + P1)
+| Phase | 내용 | 상태 |
+|-------|------|------|
+| Phase 0 | v2 설계 확정 및 LW 경량화 방향 결정 | Done |
+| Phase 1 | v1 코드 제거 (DOT, Resolver, 4-mode, sources) | Done |
+| Phase 2 | 매니페스트 단일화 (capabilities.json) | Done |
+| Phase 3 | Beads 태스크 시스템 마이그레이션 | Done |
+| Phase 4 | Tier 시스템 + check-env.mjs | Done |
+| Phase 5 | 코어 스킬 구현 (Enhancement 섹션 패턴) | Done |
+| Phase 6 | Hook/Engine 통합 (SessionStart 추가) | Done |
+| Phase 7 | v1→v2 마이그레이션 함수 | Done |
+| Phase 8 | 테스트 스위트 v2 갱신 (201 tests) | Done |
+| Phase 9 | 프로필 최적화 (plan.json, code.json) | Done |
+| Phase 10 | 문서 동기화 (PRD, Architecture v2.1) | Done |
+| Phase 11 | Superpowers 통합 (Enhancement 섹션) | Done |
+| LW | 경량화 정리 (불필요 코드/파일 제거) | Done |
 
-기간: 2026-03-04 ~ 2026-03-10
+### v1 기반 마일스톤 (2026-03-03 이전)
 
-전략:
+v2에서 흡수/제거된 항목:
 
-1. Policy-Driven Orchestrator 방향으로 정렬
-2. 기능별 작은 PR 3~5개
-3. 표준 게이트(`local + scripts/test.sh all + bundle smoke`) 적용
+- M0~M6: Design, Plugin Contract, Install, Work Record, Release Bundle, Baseline Engine, Update Governance
+- M7~M9.5: Core Stability, Policy/Status, Release Validation, Hook/Team/Doc
 
-Work streams:
+## 2) 현재 상태
 
-1. `w-p0-core-stability` (`#24~#27`)
-2. `w-p1-policy-status` (`#30~#32`, `#34`, `#35`)
-3. `w-release-validation` (`#28`, `#29`, `#33`)
+- **버전**: 0.2.0
+- **모드**: plan / code (2-mode)
+- **Tier**: 0 (Core) / 1 (+Superpowers) / 2 (+MCP)
+- **테스트**: 8개 파일, 201 assertions, 전부 통과
+- **스킬**: 18개 (코어 8 + 유틸리티 10)
+- **태스크 추적**: Beads (.beads/issues.jsonl)
 
-### M7. Core Stability Hardening (P0)
+## 3) 향후 로드맵
 
-상태: In Progress  
-완료 목표: 2026-03-06
+### 단기 (다음 마일스톤)
 
-1. `update rollback <id>` 실동작 보장
-2. DOT compile 경로/성공 판정 정합성 확보
-3. KPI show 무데이터 안정성 보장
-4. 실행 로그 start/end/duration/result 완전 기록
+1. **cch-init 안정화**: project.yml 기반 프로젝트 초기화 워크플로우 개선
+2. **LSP 통합 강화**: cch-lsp 스킬 자동 감지/설치 완성도 향상
+3. **PinchTab 연동**: 웹 UI 자동화 서브시스템 안정화
 
-### M8. Policy & Status Standardization (P1)
+### 중기
 
-상태: In Progress  
-완료 목표: 2026-03-09
+1. **CI/CD 게이트**: PR/merge 단계별 테스트 범위 정의
+2. **릴리스 자동화**: dist/ 번들 빌드 스크립트 개선
+3. **Beads 확장**: 마일스톤 그룹핑, 타임라인 뷰
 
-1. `cch status --json` 도입 (PLAN 연계 + DOT 실험 상태 포함)
-2. health `reason_code` 표준화
-3. `manifests/health-rules.json` 도입 (Architecture 8절 4개 대표 규칙 반영)
-4. Resolver 결정적 실행 보장(정렬/원자 기록)
-5. update check 결과 reason_code 체계 통합
-6. `/cch-mode plan` 시 PLAN 문서 자동 생성 (`#53`)
+### 장기
 
-### M9. Release Validation Sync
+1. **멀티 프로젝트**: 여러 프로젝트 동시 관리
+2. **메트릭 대시보드**: 생산성/품질 지표 수집 및 시각화
+3. **플러그인 마켓플레이스**: 커뮤니티 스킬 공유
 
-상태: In Progress  
-완료 목표: 2026-03-10
+## 4) 추적 문서
 
-1. Resilience/DOT Gate 테스트 실파일 구현
-2. `scripts/test.sh all`에서 SKIP 0
-3. stable bundle smoke + lock 무결성 검증
-4. PRD/Architecture/Roadmap/TODO 문서 동기화
-
-### M9.5. Hook/Team/Doc 자동화 (Phase 3+)
-
-상태: Done (2026-03-03)
-
-1. UserPromptSubmit 모드 자동 감지 hook (`#50`)
-2. `/cch-team` 순차 파이프라인 스킬 (`#51`)
-3. 문서 자동 영구화 + 경로 명시 시스템 (`#52`)
-
-## 3) Week-1 완료 게이트 (전부 필수)
-
-1. 치명 버그(P0) 0건
-2. `cch update rollback <id>` 실동작
-3. 6-layer 테스트 전부 통과
-4. stable 번들 무결성 검증 통과
-5. `cch status`에 mode/health/reason_code/work summary 표시
-6. DOT on/off가 resolve 결과에 실제 반영
-7. PRD/Architecture/Roadmap/TODO 동기화
-
-## 4) Week-1 이후 로드맵 (예정)
-
-### M10. Framework v2 Core Completion (Phase 4, `#36~#43`,`#54`)
-
-상태: Planned
-
-정책/스키마 정규화:
-
-1. Mode Profile JSON 스키마 정규화 (`#36`)
-2. Capability Registry 스키마 도입 (`#37`)
-3. Resolved Output 스키마 정규화 + golden 비교 체계 (`#54`)
-
-명령/오류 계약 표준화:
-
-4. 명령 계약 v2: 종료코드(0/1/2), 출력 블록(summary/machine), 증적 필수화 (`#38`)
-5. 오류 분류 체계: E_VALIDATION/E_SOURCE_MISSING/E_POLICY_BLOCKED/E_INTEGRITY/E_RUNTIME (`#39`)
-
-런타임 인프라:
-
-6. state 디렉터리 네임스페이스 정규화 (`#40`)
-7. 동시성 제어 lock 파일 도입 (`#41`)
-
-CI/테스트 게이트:
-
-8. CI 게이트 정규화: PR/merge/release 단계별 범위 (`#42`)
-9. Phase 4 통합 검증 (`#43`)
-
-### M11. Supply Chain & Operations (Phase 5, `#44~#49`,`#55`)
-
-상태: Planned
-
-공급망 거버넌스:
-
-1. signed release manifest/signature 체인 도입 (`#44`)
-2. 릴리즈 채널/승격 정책 자동화: dev/candidate/stable (`#45`)
-
-운영 관측성:
-
-3. KPI metrics 스키마 확장: `experiment_id`/`window` 필드 추가 (`#55`)
-4. 운영 KPI 대시보드 정규화 (`#46`)
-5. DOT 게이트 자동 판정 리포트 (`#47`)
-6. 모드별 SLO 정의 및 경보 (`#48`)
-
-최종 게이트:
-
-7. Framework Readiness 12개 기준 최종 판정 (`#49`)
-
-## 5) 추적 문서
-
-1. `.beads/` (Beads — 태스크 SSOT, `bd ready`로 조회)
-2. `docs/plans/2026-03-03-week1-execution.md`
-3. `docs/plans/2026-03-03-w-p0-core-stability.md`
-4. `docs/plans/2026-03-03-w-p1-policy-status.md`
-5. `docs/plans/2026-03-03-w-release-validation.md`
-6. `docs/plans/2026-03-03-cch-framework-v2-design.md`
+1. `.beads/` — 태스크 SSOT (`bd ready`로 조회)
+2. `docs/plans/2026-03-04-cch-v2-harness-renewal.md` — v2 리뉴얼 설계
+3. `docs/plans/2026-03-04-cch-v2-lightweight-review.md` — 경량화 검토
+4. `docs/plans/2026-03-04-superpowers-integration.md` — Superpowers 통합
+5. `docs/TODO.md` — 전체 작업 항목 추적
