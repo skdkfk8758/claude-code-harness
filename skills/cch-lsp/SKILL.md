@@ -194,12 +194,13 @@ project.yml 업데이트: [OK]
 
 ## Add Flow (`/cch-lsp add <language>`)
 
-1. `<language>`가 유효한 Serena ID인지 검증 (위 매핑 테이블 참조)
-2. 이미 project.yml에 있는지 확인 → 있으면 "이미 설정되어 있습니다" 출력 후 종료
-3. Step 4 (INSTALL) 실행 — 해당 언어만
-4. Step 5 (CONFIG) 실행
-5. Step 6 (RESTART) 실행
-6. Step 7 (VERIFY) 실행 — 해당 언어만
+1. `.serena/project.yml` 파일이 없으면 'Serena project.yml이 없습니다 — 먼저 `/cch-lsp`를 실행하세요'를 출력하고 종료합니다.
+2. `<language>`가 유효한 Serena ID인지 검증 (위 매핑 테이블 참조)
+3. 이미 project.yml에 있는지 확인 → 있으면 "이미 설정되어 있습니다" 출력 후 종료
+4. Step 4 (INSTALL) 실행 — 해당 언어만
+5. Step 5 (CONFIG) 실행
+6. Step 6 (RESTART) 실행
+7. Step 7 (VERIFY) 실행 — 해당 언어만
 
 ---
 
@@ -221,12 +222,13 @@ project.yml 업데이트: [OK]
 
 ## Remove Flow (`/cch-lsp remove <language>`)
 
-1. `<language>`가 project.yml에 있는지 확인 → 없으면 "설정되지 않은 언어입니다" 출력 후 종료
-2. 마지막 언어인지 확인 → 마지막이면 "최소 1개 언어가 필요합니다" 경고 후 종료
-3. AskUserQuestion으로 확인: "bash LSP를 제거하시겠습니까? (project.yml에서만 제거, 서버 바이너리는 유지)"
-4. Edit 도구로 project.yml에서 해당 언어 제거
-5. 제거 후 project.yml을 다시 읽어 해당 언어가 실제로 제거되었는지 검증합니다
-6. 결과 테이블 출력:
+1. `.serena/project.yml` 파일이 없으면 'Serena project.yml이 없습니다 — 설정된 언어 없음'을 출력하고 종료합니다.
+2. `<language>`가 project.yml에 있는지 확인 → 없으면 "설정되지 않은 언어입니다" 출력 후 종료
+3. 마지막 언어인지 확인 → 마지막이면 "최소 1개 언어가 필요합니다" 경고 후 종료
+4. AskUserQuestion으로 확인: "<language> LSP를 제거하시겠습니까? (project.yml에서만 제거, 서버 바이너리는 유지)"
+5. Edit 도구로 project.yml에서 해당 언어 제거
+6. 제거 후 project.yml을 다시 읽어 해당 언어가 실제로 제거되었는지 검증합니다
+7. 결과 테이블 출력:
 ```
 ## LSP 제거 완료
 
