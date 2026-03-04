@@ -1274,7 +1274,514 @@ claude-code-harness/
 
 ---
 
-## 15. 결론
+## 15. 갭 해소 설계 (G1-G7)
+
+### G1. v1/v2 네임스페이스 충돌 방지
+
+**문제**: v1의 `.claude/cch/`와 v2가 동일 경로를 사용하면 마이그레이션 시 데이터 손실 위험.
+
+**설계: Version Gate 패턴**
+
+```text
+.claude/cch/
+├── version              # "2" (v2 마커)
+├── v1-backup/           # 마이그레이션 시 v1 상태 백업
+└── ...v2 구조...
+```
+
+동작 규칙:
+1. `cch setup` 실행 시 `.claude/cch/version` 파일 확인
+2. 파일 없음 → v1으로 간주 → 마이그레이션 프롬프트
+3. `version=1` → v1 상태를 `v1-backup/`으로 복사 후 v2 구조 생성
+4. `version=2` → 정상 진행
+
+```bash
+_version_gate() {
+  local ver_file="$CCH_STATE/version"
+  if [[ ! -f "$ver_file" ]]; then
+    echo "v1 환경 감지. 마이그레이션을 시작합니다."
+    _migrate_v1_to_v2
+    echo "2" > "$ver_file"
+  elif [[ "$(cat "$ver_file")" == "1" ]]; then
+    _migrate_v1_to_v2
+    echo "2" > "$ver_file"
+  fi
+}
+```
+
+롤백: `cch rollback-to-v1` 명령으로 `v1-backup/` 복원 가능.
+
+---
+
+### G2. 9개 코어 스킬 스펙 정의
+
+**문제**: Tier 0 코어 스킬의 구체적 입출력 스펙이 없으면 구현 기준이 모호.
+
+**설계: Tier-Aware Skill Template**
+
+각 코어 스킬은 `SKILL.md` + `adapter.sh` 구조:
+
+```yaml
+# skills/cch-brainstorm/SKILL.md
+name: cch-brainstorm
+tier: [0, 1, 2]
+trigger: "brainstorm|ideate|explore ideas"
+input: topic (string, required)
+output: structured_ideas (markdown)
+tier_behavior:
+  0: "내장 프롬프트 체인 (Claude 단독)"
+  1: "omc planner/analyst 연동"
+  2: "멀티 에이전트 합의 (ralplan)"
+```
+
+**9개 코어 스킬 스펙 요약:**
+
+| # | 스킬 | Tier 0 동작 | Tier 1 확장 | Tier 2 확장 |
+|---|------|------------|------------|------------|
+| 1 | `cch-brainstorm` | 구조화된 프롬프트 체인 | omc planner 연동 | 멀티 에이전트 합의 |
+| 2 | `cch-plan` | 마크다운 계획서 생성 | architect 에이전트 | consensus planning |
+| 3 | `cch-commit` | 변경 분석 + 커밋 | work-item 연동 | 자동 PR 생성 |
+| 4 | `cch-todo` | TODO.md CRUD | beads 연동 | 팀 태스크 동기화 |
+| 5 | `cch-verify` | 테스트 실행 + 확인 | verifier 에이전트 | 다중 검증 파이프라인 |
+| 6 | `cch-review` | 셀프 리뷰 체크리스트 | code-reviewer 에이전트 | 보안+품질+성능 리뷰 |
+| 7 | `cch-debug` | 에러 분석 프롬프트 | debugger 에이전트 | 병렬 원인 분석 |
+| 8 | `cch-tdd` | red-green-refactor 가이드 | test-engineer 에이전트 | 커버리지 자동 추적 |
+| 9 | `cch-setup` | 환경 스캔 + 초기화 | 플러그인 감지 + Tier 판정 | HRP 풀 스캔 |
+
+---
+
+### G3. Tier 상태 일관성 보장
+
+**문제**: 런타임 중 플러그인이 제거되면 Tier가 강등되는데, 진행 중인 작업이 상위 Tier 기능에 의존하면 장애 발생.
+
+**설계: Tier State Machine + Graceful Degradation**
+
+```text
+상태 전이:
+  Tier2 → Tier1: 가능 (경고 + 대체 경로)
+  Tier1 → Tier0: 가능 (경고 + 기능 제한 안내)
+  TierN → TierN+1: HRP 스캔 시에만 (세션 중간 불가)
+```
+
+핵심 규칙:
+1. **세션 내 Tier 잠금**: 세션 시작 시 결정된 Tier는 세션 종료까지 유지
+2. **강등은 다음 세션부터**: 플러그인 제거 감지 시 `pending_downgrade` 마킹
+3. **긴급 강등 예외**: 플러그인 크래시 → 즉시 해당 기능만 비활성화 (Tier 자체는 유지)
+
+```bash
+_check_tier_consistency() {
+  local current_tier=$(cat "$CCH_STATE/state/tier")
+  local scan_tier=$(_calculate_tier)
+
+  if [[ "$scan_tier" -lt "$current_tier" ]]; then
+    echo "pending_downgrade=$scan_tier" >> "$CCH_STATE/state/tier_pending"
+    _log "warn" "Tier 강등 예정: $current_tier → $scan_tier (다음 세션부터 적용)"
+  fi
+}
+```
+
+**preserved_config 패턴**: Tier 강등 시에도 사용자 설정(정책, 워크플로우 커스터마이징)은 보존. 재승급 시 자동 복원.
+
+---
+
+### G4. HRP 5초 성능 보장
+
+**문제**: 전체 환경 스캔이 5초를 초과하면 사용자 경험 저하.
+
+**설계: 3-Layer Scan Budget**
+
+```text
+총 예산: 5,000ms
+├── Layer 1: Fingerprint Check (500ms)
+│   └── .claude/cch/scan-result.json의 해시 비교
+│   └── 변경 없으면 → 캐시 반환 (즉시 완료)
+├── Layer 2: Delta Scan (2,000ms)
+│   └── 변경된 디렉터리만 스캔
+│   └── 새 파일/삭제 파일 감지
+└── Layer 3: Deep Probe (2,500ms)
+    └── 새로 발견된 소스만 능력 테스트
+    └── timeout 시 partial result 반환
+```
+
+최적화 기법:
+1. **Fingerprint 캐시**: `find` 결과의 MD5를 저장, 변경 없으면 스캔 스킵
+2. **병렬 프로브**: 각 소스 검증을 백그라운드로 실행
+3. **타임아웃 안전 장치**: 5초 초과 시 현재까지 결과로 Tier 판정
+4. **점진적 갱신**: 이전 스캔 결과를 기반으로 delta만 업데이트
+
+```bash
+_hrp_scan_with_budget() {
+  local start_ms=$(date +%s%3N)
+  local budget_ms=5000
+
+  # Layer 1: Fingerprint
+  if _fingerprint_unchanged; then
+    cat "$CCH_STATE/scan-result.json"
+    return 0
+  fi
+
+  # Layer 2: Delta scan
+  local remaining=$((budget_ms - $(date +%s%3N) + start_ms))
+  _delta_scan "$remaining" &
+  local scan_pid=$!
+
+  # Layer 3: Deep probe (남은 시간만큼)
+  wait $scan_pid
+  remaining=$((budget_ms - $(date +%s%3N) + start_ms))
+  if [[ $remaining -gt 500 ]]; then
+    _deep_probe "$remaining"
+  fi
+
+  _save_scan_result
+}
+```
+
+---
+
+### G5. 스킬 테스트 커버리지
+
+**문제**: v2 코어 스킬 9개의 테스트 전략이 없으면 회귀 방지 불가.
+
+**설계: 3-Layer Skill Test**
+
+```text
+Layer 1: Contract Test (각 스킬당 1개)
+  - SKILL.md의 입출력 스펙 검증
+  - trigger 패턴 매칭 검증
+  - tier_behavior 키 존재 검증
+
+Layer 2: Behavior Test (각 스킬당 Tier별 1개)
+  - Tier 0 동작 검증 (벤더 없이 동작하는지)
+  - Tier 1 동작 검증 (mock 플러그인으로)
+  - Tier 2 동작 검증 (mock 풀 환경으로)
+
+Layer 3: Integration Test (워크플로우 단위)
+  - setup → brainstorm → plan → commit 파이프라인
+  - Tier 전환 시 스킬 동작 변화
+  - HRP 스캔 후 스킬 목록 갱신
+```
+
+테스트 파일 구조:
+```text
+tests/
+├── skills/
+│   ├── test_skill_contract.sh      # Layer 1: 전체 스킬 계약
+│   ├── test_brainstorm_tier0.sh    # Layer 2: 개별 스킬
+│   ├── test_brainstorm_tier1.sh
+│   └── ...
+├── test_workflow_pipeline.sh       # Layer 3: 통합
+└── harness.sh                      # 테스트 프레임워크 (v1 재사용)
+```
+
+목표: **스킬당 최소 3개 테스트** (contract + tier0 behavior + integration 참여) = 최소 27개 테스트 케이스.
+
+---
+
+### G6. 엔진 호출 체인 명세
+
+**문제**: Hook → CLI → Engine 간의 호출 흐름이 불명확하면 디버깅과 확장이 어려움.
+
+**설계: 3-Stage Call Chain**
+
+```text
+Stage 1: Hook Layer (hooks.json)
+  ├── PreToolUse → context injection
+  ├── PostToolUse → evidence collection
+  └── SessionStart → HRP scan trigger
+
+Stage 2: CLI Layer (bin/cch)
+  ├── 명령 파싱 + 인자 검증
+  ├── Tier 확인 + 정책 로드
+  └── Engine 디스패치
+
+Stage 3: Engine Layer (scripts/*.mjs)
+  ├── Context Engine → 토큰 예산 관리
+  ├── Policy Engine → 워크플로우 실행
+  ├── Lifecycle Engine → 세션/태스크 상태
+  └── HRP Scanner → 능력 감지
+```
+
+호출 예시 (`/cch-brainstorm "topic"`):
+```text
+1. Hook: SessionStart → _hrp_scan_with_budget()
+2. Hook: PreToolUse(Skill) → tier context injection
+3. CLI: bin/cch skill brainstorm "topic"
+4. CLI: _load_policy("workflows.json") → brainstorm 워크플로우 로드
+5. CLI: _check_tier() → Tier 0/1/2 분기
+6. Engine(Tier0): scripts/brainstorm-engine.mjs → 프롬프트 체인 실행
+7. Engine(Tier1): scripts/brainstorm-engine.mjs → omc planner 에이전트 호출
+8. Hook: PostToolUse(Skill) → 결과 로깅
+```
+
+계약: 모든 Engine 함수는 `{success: bool, result: any, duration_ms: number}` 반환.
+
+---
+
+### G7. v1 → v2 기능 역검증 체크리스트
+
+**문제**: v2가 v1의 필수 기능을 누락하면 기존 사용자가 피해를 입음.
+
+**설계: Feature Parity Matrix**
+
+| v1 기능 | v1 구현 위치 | v2 대응 | 상태 |
+|---------|------------|---------|------|
+| `cch setup` | bin/cch:503-583 | `cch setup` (Tier 판정 추가) | 대체 |
+| `cch mode <m>` | bin/cch:585-640 | 정책 기반 모드 전환 | 대체 |
+| `cch status` | bin/cch:710-820 | `cch status` (Tier/HRP 정보 추가) | 대체 |
+| `cch status --json` | bin/cch:822-901 | 동일 | 유지 |
+| `cch doctor` | bin/cch:903-1190 | `cch status`에 통합 | 흡수 |
+| `cch dot on/off` | bin/cch:1192-1330 | 제거 (DOT 실험 종료) | 삭제 |
+| `cch update check` | bin/cch:1451-1550 | `cch update check` (간소화) | 대체 |
+| `cch update apply` | bin/cch:1550-1650 | `cch update apply` | 유지 |
+| `cch update rollback` | bin/cch:1650-1750 | `cch update rollback` | 유지 |
+| source 설치/관리 | bin/lib/sources.sh | 제거 (HRP로 대체) | 삭제 |
+| KPI 추적 | bin/lib/kpi.sh | Lifecycle Engine 흡수 | 흡수 |
+| health 규칙 | manifests/health-rules.json | policies/health.json | 이전 |
+| 51개 스킬 | skills/cch-* | 18개 스킬 (Tier-aware) | 축소 |
+| 6-layer 테스트 | tests/*.sh | 3-layer + 스킬 테스트 | 재편 |
+
+검증 방법:
+1. v1 `bin/cch` 의 모든 `cmd_*` 함수를 추출
+2. 각 함수에 대해 v2 대응 여부를 이 매트릭스에서 확인
+3. "삭제" 항목은 삭제 사유 문서화 필수
+4. MVP 전에 이 매트릭스의 "대체"/"유지" 항목 100% 구현 확인
+
+---
+
+## 16. 제거 및 최적화 계획
+
+### 16.1 제거 대상 인벤토리
+
+#### 디렉터리 전체 삭제
+
+| 디렉터리 | 파일 수 | 총 라인 | 사유 |
+|---------|--------|--------|------|
+| `dot/` | 4 | ~68 | DOT 실험 종료 |
+| `overlays/` | 1 | 0 | .gitkeep만 존재, 사용처 없음 |
+| `src/` | 0 | 0 | 빈 디렉터리 |
+| `profiles/swarm.json` 외 불필요 프로필 | - | - | 팀 파이프라인으로 흡수 |
+
+#### 코어 파일 삭제/변환
+
+| 파일 | 라인 수 | 처리 | 사유 |
+|------|--------|------|------|
+| `bin/lib/sources.sh` | 918 | **삭제** | 벤더 설치/관리 전체 (HRP로 대체) |
+| `bin/lib/kpi.sh` | 83 | **삭제** | Lifecycle Engine에 흡수 |
+| `scripts/build-release.sh` | 76 | **삭제** | 릴리즈 파이프라인 재설계 |
+| `scripts/mode-detector.sh` | 116 | **삭제** | HRP Scanner가 대체 |
+| `scripts/tdd-enforcer.sh` | - | **삭제** | cch-tdd 스킬로 대체 |
+| `scripts/todo-sync-check.sh` | - | **삭제** | cch-todo 스킬로 통합 |
+| `scripts/plan-doc-reminder.sh` | - | **삭제** | cch-plan 스킬로 통합 |
+| `bin/lib/log.sh` | 187 | **유지** | 공용 로깅 유틸리티 |
+| `bin/lib/lock.sh` | 54 | **유지** | 동시성 제어 |
+| `bin/lib/beads.sh` | 363 | **유지** | Lifecycle Engine 기반 |
+| `bin/lib/branch.sh` | 260 | **유지** | 브랜치 관리 |
+| `bin/lib/arch.sh` | 348 | **부분 유지** | test_ratio → Health Score로 변환 |
+
+#### 매니페스트 정리 (14 → 4)
+
+**삭제 (10개):**
+- `manifests/sources.json` (61줄) — 벤더 정의
+- `manifests/kpi-schema.json` — KPI 스키마
+- `manifests/release-channels.json` — 릴리즈 채널
+- `manifests/release-manifest-schema.json` — 릴리즈 스키마
+- `manifests/slo-definitions.json` — SLO 정의
+- `manifests/architecture-levels.json` — 아키텍처 레벨
+- `manifests/capability-schema.json` — 능력 스키마
+- `manifests/resolved-schema.json` — resolve 스키마
+- `manifests/health-rules.json` (87줄) — `policies/health.json`으로 이전
+- `manifests/capabilities.json` (51줄) — Tier 시스템으로 재구조화
+
+**유지 (2개):**
+- `manifests/command-contract.json` (22줄)
+- `manifests/error-codes.json` (20줄)
+
+**신규 (2개):**
+- `policies/workflows.json` — 워크플로우 정책
+- `policies/health.json` — 헬스 규칙 (health-rules.json 이전)
+
+#### 프로필 정리 (4 → 3)
+
+| 프로필 | 처리 | 사유 |
+|--------|------|------|
+| `profiles/plan.json` | 유지 | plan 모드 |
+| `profiles/code.json` | `profiles/work.json`으로 리네임 | code → work 통합 |
+| `profiles/tool.json` | 유지 | tool 모드 |
+| `profiles/swarm.json` | **삭제** | 팀 파이프라인으로 흡수 |
+
+#### 스킬 삭제 (51 → 18, 33개 삭제)
+
+**벤더 래퍼 삭제 (29개):**
+- `cch-sp-*` 12개: brainstorm, code-review, debug, execute-plan, finish-branch, git-worktree, parallel-agents, receive-review, subagent-dev, tdd, verify, write-plan
+- `cch-gp-*` 9개: docs, git-learn, mentor, playground, prd, pumasi, research, skill-builder, team
+- `cch-rf-*` 6개: doctor, hive, memory, security, sparc, swarm
+- `cch-pt-*` 3개 (PinchTab): infra, report, test (단, `cch-pinchtab` 가이드는 유지)
+
+**유틸리티 삭제 (10개):**
+- `cch-dot`, `cch-release`, `cch-update`, `cch-sync`
+- `cch-hud`, `cch-mode`, `cch-pinchtab`
+- `cch-pt-infra`, `cch-pt-report`, `cch-pt-test`
+
+**유지/변환 (18개):**
+- 코어 9개: `cch-brainstorm`(신규), `cch-plan`, `cch-commit`, `cch-todo`, `cch-verify`(신규), `cch-review`(신규), `cch-debug`(신규), `cch-tdd`(신규), `cch-setup`
+- 가이드 4개: `cch-init`, `cch-init-scan`, `cch-init-scaffold`, `cch-init-docs`
+- 하네스 3개: `cch-status`, `cch-arch-guide`, `cch-team`
+- 특수 2개: `cch-excalidraw`, `cch-pr`
+
+#### 테스트 파일 정리
+
+**삭제 (5개):**
+- `tests/test_source_types.sh` — 벤더 소스 타입 테스트
+- `tests/test_vendor_integration.sh` — 벤더 통합 테스트
+- `tests/test_dot_gate.sh` — DOT 게이트 테스트
+- `tests/test_gptaku_skills.sh` — GPTaku 스킬 테스트
+- `tests/test_ruflo_skills.sh` — Ruflo 스킬 테스트
+
+**유지:**
+- `tests/harness.sh` — 테스트 프레임워크 (v1 재사용)
+- `tests/test_contract.sh` — 명령 계약 테스트 (수정)
+- `tests/test_skill.sh` — 스킬 테스트 (수정)
+- `tests/test_workflow.sh` — 워크플로우 테스트 (수정)
+- `tests/test_resilience.sh` — 복원력 테스트 (수정)
+- `tests/test_agent.sh` — 에이전트 테스트 (수정)
+
+---
+
+### 16.2 bin/cch 내부 배선 제거 상세
+
+`bin/cch`는 현재 2,069줄. v2에서 ~500줄로 축소 (76% 감소).
+
+| 코드 블록 | 라인 범위 | 라인 수 | 처리 |
+|----------|----------|--------|------|
+| 상태 헬퍼 함수 | 30-63 | 33 | **유지** |
+| JSON 파서 (bash) | 110-118 | 8 | **삭제** (mjs로 대체) |
+| `_list_available_sources` | 120-190 | 70 | **삭제** (HRP Scanner) |
+| `check_source_available` | 191-300 | 109 | **삭제** (HRP Scanner) |
+| `_compute_source_hash` | 301-367 | 66 | **삭제** (HRP fingerprint) |
+| `_do_resolve` | 368-491 | 123 | **삭제** (Tier 기반으로 대체) |
+| `_apply_fallback_order` | 492-502 | 10 | **삭제** |
+| `cmd_setup` | 503-583 | 80 | **변환** (~50줄로 축소) |
+| `cmd_mode` | 585-640 | 55 | **변환** (~30줄로 축소) |
+| `cmd_status` + `cmd_status_json` | 710-901 | 191 | **변환** (~80줄로 축소) |
+| `cmd_doctor` | 903-1190 | 287 | **삭제** (status에 통합) |
+| DOT 관련 함수들 | 1192-1330 | 138 | **삭제** (DOT 제거) |
+| KPI 관련 함수들 | 1336-1449 | 113 | **삭제** (Lifecycle 흡수) |
+| 업데이트/릴리즈/싱크 | 1451-1899 | 448 | **변환** (~100줄로 축소) |
+| 메인 디스패처 | 1900-2069 | 169 | **변환** (~60줄로 축소) |
+
+**제거 소계:** ~1,374줄 삭제 + ~625줄 → ~320줄로 변환 = **최종 ~500줄**
+
+---
+
+### 16.3 안전한 제거 순서
+
+의존성 분석에 기반한 4단계 제거:
+
+**Phase 1: 독립 디렉터리/파일 (의존성 없음)**
+1. `dot/` 디렉터리 삭제
+2. `overlays/` 디렉터리 삭제
+3. `src/` 디렉터리 삭제
+4. `manifests/kpi-schema.json` 삭제
+5. `manifests/slo-definitions.json` 삭제
+6. `manifests/architecture-levels.json` 삭제
+7. `manifests/release-channels.json` 삭제
+8. `manifests/release-manifest-schema.json` 삭제
+
+**Phase 2: 벤더 래퍼 스킬 (bin/cch와 약한 참조)**
+9. `skills/cch-sp-*` 12개 삭제
+10. `skills/cch-gp-*` 9개 삭제
+11. `skills/cch-rf-*` 6개 삭제
+12. `skills/cch-pt-*` 3개 삭제 (cch-pinchtab 가이드는 유지)
+13. 유틸리티 스킬 10개 삭제
+
+**Phase 3: 코어 라이브러리 (bin/cch 직접 참조)**
+14. `bin/lib/sources.sh` 삭제 → `bin/cch`에서 `source` 라인 제거
+15. `bin/lib/kpi.sh` 삭제 → `bin/cch`에서 KPI 함수 호출 제거
+16. `scripts/mode-detector.sh` 삭제
+17. `scripts/build-release.sh` 삭제
+18. 벤더 관련 테스트 5개 삭제
+
+**Phase 4: bin/cch 내부 리팩터링 (마지막)**
+19. `bin/cch`에서 삭제 대상 함수 블록 제거 (~1,374줄)
+20. 남은 함수 변환 (setup, mode, status, update → v2 인터페이스)
+
+> **원칙**: Phase N+1은 Phase N 완료 후 실행. 각 Phase 후 `scripts/test.sh` 실행하여 잔여 기능 검증.
+
+---
+
+### 16.4 최적화 항목
+
+#### bin/cch 슬리밍
+
+| 항목 | 현재 | 목표 | 방법 |
+|------|------|------|------|
+| 총 라인 수 | 2,069 | ~500 | 불필요 함수 삭제 + 변환 |
+| source 명령 | 5개 lib | 3개 lib | sources.sh, kpi.sh 제거 |
+| 서브커맨드 | 12개 | 7개 | doctor/dot/kpi/sync/release 제거 |
+| JSON 처리 | bash 내장 | mjs 위임 | 복잡한 JSON은 scripts/*.mjs로 |
+
+#### 매니페스트 통합 (14 → 4)
+
+```text
+현재 (14개):                    v2 (4개):
+├── sources.json          ──→   (삭제)
+├── capabilities.json     ──→   (삭제, Tier 시스템으로)
+├── health-rules.json     ──→   policies/health.json
+├── command-contract.json ──→   manifests/command-contract.json (유지)
+├── error-codes.json      ──→   manifests/error-codes.json (유지)
+├── kpi-schema.json       ──→   (삭제)
+├── slo-definitions.json  ──→   (삭제)
+├── architecture-levels   ──→   (삭제)
+├── release-channels      ──→   (삭제)
+├── release-manifest-*    ──→   (삭제)
+├── capability-schema     ──→   (삭제)
+├── resolved-schema       ──→   (삭제)
+└── (신규)                ──→   policies/workflows.json
+                          ──→   policies/health.json
+```
+
+#### 정책 디렉터리 신설
+
+```text
+policies/
+├── workflows.json        # 워크플로우 정의 (brainstorm→plan→code→verify)
+├── health.json            # 헬스 판정 규칙 (health-rules.json에서 이전)
+├── gates.json             # 품질 게이트 정의 (선택)
+└── tier-requirements.json # Tier별 필수 조건 (선택)
+```
+
+#### 훅 최적화 (7 → 3)
+
+현재 7개 훅 스크립트 → 3개로 통합:
+
+| 현재 | v2 | 사유 |
+|------|-----|------|
+| `scripts/activity-tracker.mjs` | **유지** | Lifecycle Engine 기반 |
+| `scripts/summary-writer.mjs` | **유지** | Context Replay 기반 |
+| `scripts/plan-bridge.mjs` | **유지** | Plan 워크플로우 |
+| `scripts/mode-detector.sh` | **삭제** | HRP Scanner로 대체 |
+| `scripts/tdd-enforcer.sh` | **삭제** | cch-tdd 스킬로 대체 |
+| `scripts/todo-sync-check.sh` | **삭제** | cch-todo 스킬로 통합 |
+| `scripts/plan-doc-reminder.sh` | **삭제** | cch-plan 스킬로 통합 |
+
+---
+
+### 16.5 수치 요약
+
+| 카테고리 | 현재 (v1) | 목표 (v2) | 감소율 |
+|---------|----------|----------|--------|
+| `bin/cch` | 2,069줄 | ~500줄 | 76% |
+| `bin/lib/*.sh` | 6개 (2,213줄) | 4개 (~1,212줄) | 45% |
+| 매니페스트 | 14개 | 4개 | 71% |
+| 프로필 | 4개 | 3개 | 25% |
+| 스킬 | 51개 | 18개 | 65% |
+| 테스트 | 12개 | 7개 | 42% |
+| 훅 스크립트 | 7개 | 3개 | 57% |
+| **전체 코드베이스** | **~100%** | **~40%** | **~60% 감소** |
+
+---
+
+## 17. 결론
 
 CCH v2의 핵심은 한 문장으로 요약된다:
 
