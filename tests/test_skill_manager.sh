@@ -202,3 +202,42 @@ test_search_case_insensitive() {
   assert_contains "search case insensitive" "cch-commit" "$result"
 }
 test_search_case_insensitive
+
+# =============================================================================
+# cmd_skill (CLI integration) tests (5 tests)
+# =============================================================================
+
+test_cch_skill_list_runs() {
+  local result
+  result="$(bash "$CCH_BIN" skill list 2>&1)"
+  assert_contains "cch skill list runs" "\[" "$result"
+}
+test_cch_skill_list_runs
+
+test_cch_skill_search_runs() {
+  local result
+  result="$(bash "$CCH_BIN" skill search commit 2>&1)"
+  assert_contains "cch skill search runs" "cch-commit" "$result"
+}
+test_cch_skill_search_runs
+
+test_cch_skill_sources_runs() {
+  local result
+  result="$(bash "$CCH_BIN" skill sources 2>&1)"
+  assert_contains "cch skill sources runs" "cch-repo" "$result"
+}
+test_cch_skill_sources_runs
+
+test_cch_skill_help_runs() {
+  local result
+  result="$(bash "$CCH_BIN" skill help 2>&1)"
+  assert_contains "cch skill help" "list" "$result"
+}
+test_cch_skill_help_runs
+
+test_cch_skill_info_runs() {
+  local result
+  result="$(bash "$CCH_BIN" skill info cch-commit 2>&1)"
+  assert_contains "cch skill info" "cch-commit" "$result"
+}
+test_cch_skill_info_runs

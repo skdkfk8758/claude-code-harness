@@ -223,3 +223,53 @@ skill_search() {
   printf ']'
   echo
 }
+
+# Show detailed info for a single skill by name.
+skill_info() {
+  local target="$1"
+  [[ -z "$target" ]] && { echo "[cch] ERROR: skill name required"; return 1; }
+
+  local all_skills
+  all_skills="$(skill_scan_all)"
+  local match
+  match="$(echo "$all_skills" | grep "\"name\":\"${target}\"")"
+
+  if [[ -z "$match" ]]; then
+    echo "[cch] Skill '$target' not found."
+    echo "[cch] Did you mean one of:"
+    skill_search "$target" | grep '"name"' | sed 's/.*"name":"\([^"]*\)".*/  - \1/' | head -5
+    return 1
+  fi
+
+  echo "$match"
+}
+
+# Command router for `cch skill` subcommand.
+cmd_skill() {
+  local action="${1:-help}"
+  shift || true
+
+  case "$action" in
+    list)     skill_scan_all ;;
+    info)     skill_info "$@" ;;
+    search)   skill_search "$@" ;;
+    sources)  skill_list_sources ;;
+    validate) skill_validate "$@" ;;
+    help|--help|-h)
+      echo "Usage: cch skill <action> [args]"
+      echo ""
+      echo "Actions:"
+      echo "  list              List all skills across all sources"
+      echo "  info <name>       Show detailed info for a skill"
+      echo "  search <query>    Search skills by keyword"
+      echo "  sources           List configured skill sources"
+      echo "  validate <file>   Validate a SKILL.md file"
+      echo "  help              Show this help"
+      ;;
+    *)
+      echo "[cch] Unknown skill action: $action"
+      echo "[cch] Run 'cch skill help' for usage."
+      return 1
+      ;;
+  esac
+}

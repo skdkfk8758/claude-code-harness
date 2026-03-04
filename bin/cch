@@ -18,6 +18,8 @@ CCH_LIB_DIR="$CCH_ROOT/bin/lib"
 [[ -f "$CCH_LIB_DIR/beads.sh" ]] && source "$CCH_LIB_DIR/beads.sh"
 # shellcheck source=lib/lock.sh
 [[ -f "$CCH_LIB_DIR/lock.sh" ]] && source "$CCH_LIB_DIR/lock.sh"
+# shellcheck source=lib/skill.sh
+[[ -f "$CCH_LIB_DIR/skill.sh" ]] && source "$CCH_LIB_DIR/skill.sh"
 
 # --- State helpers ---
 
@@ -406,6 +408,7 @@ Commands:
   status [--json]    Show health status
   branch [cmd]       Branch workflow management
   beads [cmd]        Beads task tracking (create|list|show|ready|close|dep)
+  skill [cmd]        Skill management (list|info|search|sources|validate)
   todo               Alias for 'beads list' (legacy compatibility)
   log [show|tail]    Execution log viewer
   version            Show version
@@ -440,6 +443,7 @@ main() {
     beads)           cmd_beads "$@" || _cch_exit_code=$? ;;
     todo)            cmd_beads list "$@" || _cch_exit_code=$? ;;
     log)             cmd_log "$@" || _cch_exit_code=$? ;;
+    skill)           cmd_skill "$@" || _cch_exit_code=$? ;;
     version)         cmd_version || _cch_exit_code=$? ;;
     help|--help|-h)  cmd_help ;;
     *)
