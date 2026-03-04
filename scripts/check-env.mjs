@@ -82,6 +82,8 @@ export function checkEnv() {
 
   // Build capability map from detected sources
   const capabilities = {};
+
+  // 1) Static sources from capabilities.json
   for (const [srcName, srcDef] of Object.entries(manifest.sources || {})) {
     const detected = plugins.some((p) => p.name === srcName);
     capabilities[srcName] = {
@@ -91,10 +93,29 @@ export function checkEnv() {
     };
   }
 
+  // 2) Auto-register: plugins not in capabilities.json
+  for (const plugin of plugins) {
+    if (!capabilities[plugin.name]) {
+      capabilities[plugin.name] = {
+        type: "plugin",
+        description: `Auto-detected plugin: ${plugin.name}@${plugin.version}`,
+        required: false,
+        detected: true,
+        tier_contribution: 1,
+        auto_detected: true,
+      };
+    }
+  }
+
   return { tier, plugins, mcpServers, capabilities };
 }
 
-// --- CLI / Hook entry point ---
+// --- CLI / Hook entry point (only when run directly) ---
+
+const isDirectRun = process.argv[1]?.endsWith("check-env.mjs");
+if (!isDirectRun) {
+  // Imported as module — skip CLI logic
+} else {
 
 const args = process.argv.slice(2);
 const isHook = args[0] !== "--cli" && !process.stdin.isTTY;
@@ -147,3 +168,5 @@ if (isHook) {
     );
   }
 }
+
+} // end isDirectRun guard
