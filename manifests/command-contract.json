@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CCH Command Contract v2",
+  "description": "Standard contract for all CCH CLI commands",
+  "version": "2.0",
+  "exit_codes": {
+    "0": "success",
+    "1": "command_error (invalid args, missing file, etc.)",
+    "2": "system_error (permission denied, network failure, etc.)"
+  },
+  "output_blocks": {
+    "summary": "Human-readable summary (always present)",
+    "machine": "Machine-parseable JSON output (--json flag)",
+    "evidence": "Verification evidence (logs, hashes, test results)"
+  },
+  "required_evidence": {
+    "setup": ["sources_installed", "health_check_passed"],
+    "resolve": ["mode_resolved", "sources_checked", "health_evaluated"],
+    "update": ["version_before", "version_after", "rollback_id"],
+    "release": ["tests_passed", "lock_generated", "bundle_hash"]
+  }
+}

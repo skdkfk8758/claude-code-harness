@@ -1,0 +1,14 @@
+{
+  "name": "claude-code-harness-marketplace",
+  "owner": {
+    "name": "carpdm"
+  },
+  "plugins": [
+    {
+      "name": "claude-code-harness",
+      "source": "./",
+      "description": "Meta-orchestration plugin for Claude Code. Provides mode-based capability routing with Baseline + DOT dual-track.",
+      "version": "0.1.0"
+    }
+  ]
+}

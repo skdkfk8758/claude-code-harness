@@ -73,11 +73,11 @@
         ]
       },
       {
-        "matcher": "Write|Edit",
+        "matcher": "Bash",
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/todo-sync-check.sh\"",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/tdd-enforcer.sh\"",
             "timeout": 5
           }
         ]

@@ -1,0 +1,12 @@
+{
+  "mode": "swarm",
+  "description": "Swarm mode - multi-agent coordination",
+  "capabilities": {
+    "primary": ["ruflo"],
+    "secondary": ["omc"],
+    "fallback": []
+  },
+  "dot": {
+    "eligible": false
+  }
+}

@@ -1,0 +1,40 @@
+name: workflow-naver-search
+description: 네이버에서 부동산 검색 → 래미안 아파트 찾기 (워크플로우 모드 레퍼런스)
+url: "https://www.naver.com"
+mode: headless
+type: workflow
+
+# 이 파일은 자연어 → 계획 변환의 기대 출력 레퍼런스
+# 실제 워크플로우 실행 시에는 자연어 입력으로부터 자동 생성된다
+natural_language_input: "네이버에서 부동산 검색해서 래미안 아파트 찾아줘"
+
+expected_plan:
+  goal: "네이버에서 '부동산'을 검색하여 래미안 아파트 관련 결과를 찾는다"
+  steps:
+    - action: navigate
+      url: "https://www.naver.com"
+      wait: 3
+
+    - action: snapshot
+      filter: interactive
+      purpose: "검색창 ref 확인"
+
+    - action: fill
+      ref: "<dynamic>"
+      text: "부동산"
+      purpose: "검색창에 키워드 입력"
+
+    - action: press
+      key: Enter
+
+    - action: snapshot
+      wait: 3
+      purpose: "검색 결과 로드 확인"
+
+    - action: text
+      assert:
+        contains: ["래미안"]
+      purpose: "래미안 관련 결과 존재 확인"
+
+    - action: screenshot
+      output: naver-search-result.png

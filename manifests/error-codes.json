@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CCH Error Classification",
+  "description": "Standard error codes for CCH framework",
+  "version": "1.0",
+  "categories": {
+    "E_VALIDATION": { "code_range": "100-199", "description": "Input validation failures", "examples": ["invalid mode", "missing required field", "malformed JSON"] },
+    "E_SOURCE_MISSING": { "code_range": "200-299", "description": "Source unavailability", "examples": ["repo not cloned", "plugin not installed", "submodule not initialized"] },
+    "E_POLICY_BLOCKED": { "code_range": "300-399", "description": "Policy enforcement blocks", "examples": ["mode not allowed", "capability disabled", "DOT not eligible"] },
+    "E_INTEGRITY": { "code_range": "400-499", "description": "Integrity check failures", "examples": ["checksum mismatch", "lock file drift", "manifest corruption"] },
+    "E_RUNTIME": { "code_range": "500-599", "description": "Runtime execution failures", "examples": ["command timeout", "lock contention", "disk full"] }
+  },
+  "reason_codes": {
+    "RC_SRC_UNAVAILABLE": { "category": "E_SOURCE_MISSING", "severity": "degraded" },
+    "RC_SRC_BLOCKED": { "category": "E_SOURCE_MISSING", "severity": "blocked" },
+    "RC_POLICY_DENY": { "category": "E_POLICY_BLOCKED", "severity": "blocked" },
+    "RC_INTEGRITY_FAIL": { "category": "E_INTEGRITY", "severity": "blocked" },
+    "RC_LOCK_DRIFT": { "category": "E_INTEGRITY", "severity": "degraded" }
+  }
+}

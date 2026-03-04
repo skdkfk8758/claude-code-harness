@@ -1,0 +1,14 @@
+{
+  "mode": "code",
+  "description": "Coding mode - implementation and development",
+  "capabilities": {
+    "primary": ["omc", "superpowers"],
+    "secondary": ["gptaku_plugins", "ruflo"],
+    "fallback": []
+  },
+  "dot": {
+    "eligible": true,
+    "sources": ["dot"],
+    "default": false
+  }
+}

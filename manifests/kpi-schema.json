@@ -1,0 +1,17 @@
+{
+  "title": "CCH KPI Metrics Schema",
+  "version": "1.0",
+  "metrics": {
+    "resolve_time_ms": { "type": "number", "description": "Mode resolve 소요 시간(ms)" },
+    "sources_available": { "type": "number", "description": "사용 가능한 소스 수" },
+    "sources_total": { "type": "number", "description": "전체 등록 소스 수" },
+    "health_score": { "type": "number", "description": "건강 점수 (0-100)", "formula": "available/total * 100" },
+    "test_pass_rate": { "type": "number", "description": "테스트 통과율 (%)" },
+    "lock_drift_count": { "type": "number", "description": "Lock 불일치 소스 수" }
+  },
+  "dimensions": {
+    "experiment_id": { "type": "string", "description": "DOT 실험 ID (있는 경우)" },
+    "window": { "type": "string", "enum": ["hourly", "daily", "weekly"], "description": "집계 윈도우" },
+    "mode": { "type": "string", "description": "측정 시점의 활성 모드" }
+  }
+}

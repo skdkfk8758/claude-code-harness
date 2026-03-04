@@ -1,0 +1,30 @@
+name: health-check
+description: 대상 URL 접근 가능 여부 및 기본 렌더링 확인
+url: "${TARGET_URL}"
+mode: headless
+on_failure: stop
+screenshot_on_fail: true
+
+vars:
+  TARGET_URL: "https://example.com"
+
+steps:
+  - action: navigate
+    url: "${TARGET_URL}"
+    wait: 3
+
+  - action: text
+    assert:
+      not_empty: true
+
+  - action: snapshot
+    filter: interactive
+    save: health-snapshot.json
+
+  - action: screenshot
+    output: health-check.png
+
+  - action: evaluate
+    expression: "document.readyState"
+    assert:
+      equals: "complete"

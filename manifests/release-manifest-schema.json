@@ -1,0 +1,16 @@
+{
+  "title": "CCH Release Manifest",
+  "version": "1.0",
+  "schema": {
+    "version": "string (semver)",
+    "build_date": "string (ISO8601)",
+    "git_sha": "string",
+    "sources_lock": "string (release.lock SHA256)",
+    "integrity_hash": "string (integrity.json SHA256)",
+    "test_results": { "total": "number", "passed": "number", "failed": "number" },
+    "signature": {
+      "method": "sha256",
+      "value": "string (SHA256 of version+git_sha+sources_lock+integrity_hash)"
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "mode": "tool",
+  "description": "Tool mode - external tool integration and orchestration",
+  "capabilities": {
+    "primary": ["gptaku_plugins"],
+    "secondary": ["omc"],
+    "fallback": []
+  },
+  "dot": {
+    "eligible": false
+  }
+}

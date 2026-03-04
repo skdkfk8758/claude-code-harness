@@ -3,14 +3,21 @@
  * Constructs the hook JSON response for plan-bridge.mjs
  */
 
+export const BRIDGE_REASONS = Object.freeze({
+  NO_PLAN_FOUND: "no_plan_found",
+  EMPTY_TEMPLATE: "empty_template",
+  NO_TASKS: "no_tasks",
+});
+
 /**
  * Build the hook output JSON for a successful bridge activation.
  *
  * @param {object|null} plan - Parsed plan data (null if no plan found)
  * @param {object} status - { success: boolean, reason?: string }
+ * @param {Array} [warnings=[]] - G9: per-command failure warnings from runCchBatch
  * @returns {object} Hook response JSON
  */
-export function buildBridgeOutput(plan, status) {
+export function buildBridgeOutput(plan, status, warnings = []) {
   const base = {
     continue: true,
     hookSpecificOutput: {
@@ -46,7 +53,7 @@ export function buildBridgeOutput(plan, status) {
     "",
     "인터뷰 결과가 자동 처리되었습니다:",
     `- 실행 계획: .claude/cch/execution-plan.json`,
-    `- 작업 항목: ${plan.work_id} (status: doing)`,
+    `- Beads: ${plan.bead_id || "N/A"}`,
     "- 모드: code",
     "",
     "지금 즉시 /cch-team 파이프라인을 시작하세요.",
@@ -58,6 +65,14 @@ export function buildBridgeOutput(plan, status) {
     `- 작업 수: ${plan.tasks.length}개`,
     `- 완료 기준: ${plan.acceptance_criteria.length}개`,
   ];
+
+  // G9: Append warnings from failed batch commands
+  if (warnings.length > 0) {
+    lines.push("", "[CCH BRIDGE WARNINGS]");
+    for (const w of warnings) {
+      lines.push(`- ${w.cmd}: ${w.error}`);
+    }
+  }
 
   base.hookSpecificOutput.additionalContext = lines.join("\n");
   return base;

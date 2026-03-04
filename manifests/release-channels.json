@@ -1,0 +1,12 @@
+{
+  "version": "1.0",
+  "channels": {
+    "dev": { "description": "개발 빌드", "auto_promote": false, "gate": "scripts/test.sh local" },
+    "candidate": { "description": "릴리즈 후보", "auto_promote": false, "gate": "scripts/test.sh all" },
+    "stable": { "description": "안정 릴리즈", "auto_promote": false, "gate": "scripts/test.sh all && scripts/build-release.sh --verify" }
+  },
+  "promotion_policy": {
+    "dev_to_candidate": { "required": ["all_tests_pass", "no_p0_bugs"], "approver": "auto" },
+    "candidate_to_stable": { "required": ["all_tests_pass", "lock_integrity", "2_day_soak"], "approver": "manual" }
+  }
+}
