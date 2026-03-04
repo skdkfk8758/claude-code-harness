@@ -4,7 +4,7 @@
 SKILLS_DIR="$ROOT_DIR/skills"
 
 # v2 core skills
-core_skills=("cch-setup" "cch-status" "cch-commit" "cch-plan" "cch-todo" "cch-verify" "cch-review" "cch-pr")
+core_skills=("cch-setup" "cch-status" "cch-commit" "cch-plan" "cch-todo" "cch-verify" "cch-review" "cch-pr" "cch-skill-manager")
 
 for skill in "${core_skills[@]}"; do
   skill_file="$SKILLS_DIR/$skill/SKILL.md"
@@ -24,7 +24,7 @@ for skill in "${core_skills[@]}"; do
 done
 
 # Check Enhancement section exists in Tier-aware skills
-tier_aware_skills=("cch-setup" "cch-commit" "cch-plan" "cch-todo" "cch-verify" "cch-review")
+tier_aware_skills=("cch-setup" "cch-commit" "cch-plan" "cch-todo" "cch-verify" "cch-review" "cch-skill-manager")
 
 for skill in "${tier_aware_skills[@]}"; do
   skill_file="$SKILLS_DIR/$skill/SKILL.md"

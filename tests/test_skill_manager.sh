@@ -241,3 +241,34 @@ test_cch_skill_info_runs() {
   assert_contains "cch skill info" "cch-commit" "$result"
 }
 test_cch_skill_info_runs
+
+# =============================================================================
+# Integration tests (4 tests)
+# =============================================================================
+
+test_cch_skill_list_finds_skill_manager() {
+  local result
+  result="$(bash "$CCH_BIN" skill list 2>&1)"
+  assert_contains "skill list finds skill-manager" "cch-skill-manager" "$result"
+}
+test_cch_skill_list_finds_skill_manager
+
+test_cch_skill_info_skill_manager() {
+  local result
+  result="$(bash "$CCH_BIN" skill info cch-skill-manager 2>&1)"
+  assert_contains "skill info skill-manager" "cch-skill-manager" "$result"
+}
+test_cch_skill_info_skill_manager
+
+test_cch_skill_validate_valid() {
+  local result
+  result="$(bash "$CCH_BIN" skill validate "$ROOT_DIR/tests/fixtures/valid-skill/SKILL.md" 2>&1)"
+  assert_not_contains "validate valid fixture" "error" "$result"
+}
+test_cch_skill_validate_valid
+
+test_cch_skill_validate_defective() {
+  bash "$CCH_BIN" skill validate "$ROOT_DIR/tests/fixtures/defective-skill/SKILL.md" >/dev/null 2>&1
+  assert_exit_code "validate defective via CLI" "1" "$?"
+}
+test_cch_skill_validate_defective
