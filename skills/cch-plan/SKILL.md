@@ -222,7 +222,7 @@ docs/plans/YYYY-MM-DD-<topic>-impl.md
 구현 플랜 문서에서 `### Task N: <제목>` 패턴으로 Task 목록을 추출한다.
 각 Task의 제목, 세부 Steps, 의존성(Task M)을 파악한다.
 
-### 3-3. Beads 항목 생성
+### 3-3. Beads 항목 생성 (SSOT)
 
 각 Task에 대해 Bead를 생성한다:
 
@@ -233,35 +233,35 @@ bash bin/cch beads create "<Task 제목>" --priority 2 --labels "phase:<XX>,plan
 - 의존성이 있는 Task는 `bash bin/cch beads dep <bead-id> <depends-on-bead-id>` 로 연결
 - 생성된 bead-id를 기록하여 이후 단계에서 사용
 
-> **NOTE:** Beads가 태스크 SSOT입니다. `bd ready`로 작업 가능 항목을 조회합니다.
+> **NOTE:** Beads가 태스크 유일한 SSOT입니다. TaskCreate에 직접 기록하지 않습니다.
 
-### 3-4. TaskCreate 생성
+### 3-4. Hydrate: Beads → TaskList (세션 실행 뷰)
 
-플랜의 각 Task에 대해 TaskCreate를 호출한다:
-
-- `subject`: `[XX] <Task 제목>` (XX는 Phase 코드)
-- `description`: 플랜 문서의 해당 Task 전체 내용
-- 의존성이 있는 Task는 이전 TaskCreate 완료 후 `addBlockedBy` 설정
-
-### 3-5. Beads 항목 생성 (dual-write)
-
-`.beads/` 디렉터리가 존재하면 각 Task에 대해 Beads 항목도 생성한다:
+`bd ready`로 현재 실행 가능한 Bead만 TaskList에 로드한다:
 
 ```bash
-bash bin/cch beads create "<Task 제목>" --priority 2 --labels "phase:<XX>,plan:<work-id>"
+bash bin/cch beads ready --limit 10
 ```
 
-- 의존성이 있는 Task는 `bash bin/cch beads dep <bead-id> <depends-on-bead-id>` 로 연결
-- `.beads/`가 없으면 이 단계를 건너뛴다 (경고 없음)
+결과의 각 Bead에 대해:
 
-### 3-6. 결과 요약 출력
+```
+TaskCreate(
+  subject: "[XX] <Bead 제목>",
+  description: "<Bead 상세 + 플랜 문서 참조>",
+  metadata: { beadId: "<bead-id>" }
+)
+```
+
+- 의존성 매핑: Beads dep → TaskCreate addBlockedBy
+- `blocked` 상태의 Bead는 로드하지 않음 (bd ready가 자동 필터링)
+
+### 3-5. 결과 요약 출력
 
 ```
 TODO Sync 완료:
-- 추가된 항목: M개 (#N+1 ~ #N+M)
-- Phase 코드: XX
-- Beads: M개 항목 생성됨 (또는 "스킵 — .beads/ 미설정")
-- TaskList: M개 항목 생성됨
+- Beads 생성: M개 항목 (Phase XX)
+- TaskList Hydrate: N개 항목 로드 (실행 가능한 것만)
 ```
 
 TaskList를 호출하여 현재 세션 작업 목록을 출력한다.
@@ -297,3 +297,14 @@ superpowers:subagent-driven-development 사용
 별도 세션에서 superpowers:executing-plans 사용
 — 직접 Task를 선택하여 단계적으로 실행
 ```
+
+---
+
+## Enhancement (Tier 1+)
+
+> superpowers 플러그인이 설치되어 있으면 다음 강화 기능이 자동 적용됩니다.
+
+- **Phase 1**: `superpowers:brainstorming` 프로세스를 인라인 수행 (이미 적용됨)
+- **Phase 2**: `superpowers:writing-plans` 프로세스를 인라인 수행 (이미 적용됨)
+- **Tier 1+**: Phase 1-4 각 섹션에서 `notepad_read`/`notepad_write_working`으로 컨텍스트 유지
+- **Tier 2+**: MCP 서버가 있으면 Phase 1 컨텍스트 탐색에 MCP 도구 활용

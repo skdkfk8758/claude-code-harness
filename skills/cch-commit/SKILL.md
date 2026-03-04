@@ -118,7 +118,7 @@ Step 4에서 생성된 커밋의 코드 파일을 자동으로 정리합니다.
    ```
 2. 비코드 파일을 필터링하여 코드 파일 목록만 남김
 3. `code-simplifier` 서브에이전트를 Agent 도구로 호출:
-   - subagent_type: `oh-my-claudecode:code-simplifier`
+   - subagent_type: `general-purpose`
    - prompt: "다음 파일들만 simplify하세요: <파일 목록>"
 4. 에이전트 완료 후 변경 여부 확인:
    ```
@@ -172,7 +172,7 @@ Step 4에서 생성된 커밋의 코드 파일을 자동으로 정리합니다.
 ## 스크립트
 | 스크립트 | 용도 |
 |---------|------|
-| test.sh | 6-layer 테스트 실행 |
+| test.sh | 테스트 스위트 실행 |
 | ... | ... |
 
 ## 설치 및 설정
@@ -237,3 +237,11 @@ Step 5~6에서 커밋이 생성되지 않았으면 해당 행을 테이블에서
 - **Step 5~6 독립 실패 허용**: 하나가 실패해도 다음 단계는 계속 진행
 - **불필요한 커밋 생성 금지**: simplify/README 변경이 없으면 커밋하지 않음
 - **simplify는 코드 파일에만 적용**: `.md`, `.json`, `.yaml` 등 비코드 파일은 simplify 대상에서 제외
+
+## Enhancement (Tier 1+)
+
+> superpowers 플러그인이 설치되어 있으면 다음 강화 기능을 활용합니다.
+
+- **Tier 1+**: Step 3.5 TDD Pre-Check에서 `superpowers:test-driven-development` 기준 적용
+- **Tier 1+**: Step 5 Simplify에서 `superpowers:requesting-code-review` 관점으로 코드 정리
+- **Tier 1+**: 커밋 전 `superpowers:verification-before-completion` 체크리스트 자동 검증

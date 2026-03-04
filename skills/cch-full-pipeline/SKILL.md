@@ -18,19 +18,11 @@ End-to-end 프로젝트 파이프라인: PRD 인터뷰 → 팀 빌드 → 병렬
 
 ## Guidelines
 
-### Notepad & State 관리
-- 파이프라인 시작 시 `notepad_read`로 이전 컨텍스트 확인
-- 각 단계 전환 시 `state_write(mode="autopilot", current_phase="<phase>")` 업데이트
-- 중간 결과물과 발견사항을 `notepad_write_working`으로 기록
-- 파이프라인 완료 시 `state_clear(mode="autopilot")` 호출
-
 ---
 
 ## Prerequisites
 
 1. Find the plugin root by searching for `bin/cch` executable.
-2. Verify omc plugin is available (recommended for parallel agent execution).
-3. If omc is not available, pipeline will run in sequential mode.
 
 ## Steps
 
@@ -64,13 +56,10 @@ End-to-end 프로젝트 파이프라인: PRD 인터뷰 → 팀 빌드 → 병렬
 
 1. Use Agent(architect) to decompose the Technical Spec into parallel work units.
 2. Create TaskCreate entries for each work unit with dependencies.
-3. Use `omc_run_team_start` MCP tool to spawn the team:
-   - teamName: `<project-slug>-impl`
-   - agentTypes: as determined in Phase 2
-   - tasks: work unit descriptions
-   - cwd: current working directory
-4. Use `omc_run_team_wait` to collect all results (timeout: 300s).
-5. Merge worker outputs and resolve any integration conflicts.
+3. Spawn parallel agents using the Agent tool:
+   - Each agent handles one work unit
+   - Use isolation: "worktree" for independent work
+4. Collect all results and resolve any integration conflicts.
 6. Update TaskUpdate entries for completed work units.
 
 ### Phase 4 — Consensus Verification

@@ -95,7 +95,7 @@ Agent(subagent_type="general-purpose")
 Agent 도구로 서브에이전트를 실행한다:
 
 ```
-Agent(subagent_type="oh-my-claudecode:qa-tester")
+Agent(subagent_type="general-purpose")
 프롬프트: "<SESSION_DIR>/infra-result.json 에서 tabId를 읽고,
   skills/cch-pt-test/SKILL.md 의 지침에 따라 테스트를 실행하라.
 
@@ -112,7 +112,7 @@ Agent(subagent_type="oh-my-claudecode:qa-tester")
 Agent 도구로 서브에이전트를 실행한다:
 
 ```
-Agent(subagent_type="oh-my-claudecode:scientist")
+Agent(subagent_type="general-purpose")
 프롬프트: "<SESSION_DIR>/test-results.json 을 읽고,
   skills/cch-pt-report/SKILL.md 의 지침에 따라:
   1. CLI 요약을 출력하라
@@ -216,7 +216,7 @@ Agent(subagent_type="general-purpose")
 Agent 도구로 서브에이전트를 실행한다:
 
 ```
-Agent(subagent_type="oh-my-claudecode:deep-executor")
+Agent(subagent_type="general-purpose")
 프롬프트: "<SESSION_DIR>/infra-result.json 에서 tabId를 읽고,
   아래 워크플로우 계획을 적응적으로 실행하라.
 
@@ -283,7 +283,7 @@ Agent(subagent_type="oh-my-claudecode:deep-executor")
 ### Step W4: REPORT — 결과 보고
 
 ```
-Agent(subagent_type="oh-my-claudecode:scientist")
+Agent(subagent_type="general-purpose")
 프롬프트: "<SESSION_DIR>/test-results.json 을 읽고,
   <SESSION_DIR>/extracted-data.json 이 있으면 함께 읽고,
   skills/cch-pt-report/SKILL.md 의 지침에 따라:

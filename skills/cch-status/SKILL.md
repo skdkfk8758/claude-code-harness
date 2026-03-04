@@ -1,6 +1,6 @@
 ---
 name: cch-status
-description: Show CCH health status including current mode, health state, and fallback causes.
+description: Show CCH health status including current mode, tier, health state, and reason codes.
 user-invocable: true
 allowed-tools: Bash, Read, Glob
 ---
@@ -14,11 +14,14 @@ Display the current CCH health status and diagnostics.
 1. Locate `bin/cch` in the plugin directory.
 2. Run:
 ```bash
-bash "<plugin-root>/bin/cch" doctor --summary
+bash "<plugin-root>/bin/cch" status
 ```
 
 3. Present the output showing:
-   - Current mode
+   - Current mode (plan/code)
+   - Tier level (0/1/2)
    - Health status (Healthy / Degraded / Blocked)
-   - Fallback causes (if any)
-   - Current branch and linked bead (if branch module loaded)
+   - Reason codes (if any)
+   - Current branch and linked bead (if available)
+
+4. If health is not Healthy, suggest remediation based on reason codes.

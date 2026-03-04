@@ -9,16 +9,6 @@ allowed-tools: Agent, Bash, Read, Glob, Grep, TaskCreate, TaskUpdate, TaskList, 
 
 순차 개발 파이프라인 실행: Plan → Developer → Test Engineer → Verifier → Document
 
-## Guidelines
-
-### OMC State 관리
-- 파이프라인 시작 시 `state_write(mode="team", active=true, current_phase="<phase>")` 호출
-- 각 단계 완료 시 `state_write(mode="team", current_phase="<next_phase>")` 업데이트
-- 파이프라인 완료/실패 시 `state_write(mode="team", active=false, completed_at="<timestamp>")` 호출
-- 에러 발생 시 `state_write(mode="team", error="<error_message>")` 기록
-
----
-
 ## Steps
 
 ### Step 0 - 계획 문서 생성
@@ -69,7 +59,7 @@ allowed-tools: Agent, Bash, Read, Glob, Grep, TaskCreate, TaskUpdate, TaskList, 
 ### Step 1 - Developer
 1. TaskCreate로 "[Dev] <구현 내용>" 태스크를 생성합니다.
 2. Agent 도구로 executor 서브에이전트를 실행합니다:
-   - subagent_type: "oh-my-claudecode:executor"
+   - subagent_type: "general-purpose"
    - 프롬프트에 구현 요구사항 + 계획 문서 경로 전달
    - isolation: "worktree" 사용
 3. 완료 후 Task를 completed로 업데이트합니다.
@@ -77,7 +67,7 @@ allowed-tools: Agent, Bash, Read, Glob, Grep, TaskCreate, TaskUpdate, TaskList, 
 ### Step 2 - Test Engineer
 1. TaskCreate로 "[Test] <테스트 작성>" 태스크를 생성합니다 (blocked by Step 1).
 2. Agent 도구로 테스트 에이전트를 실행합니다:
-   - subagent_type: "oh-my-claudecode:test-engineer"
+   - subagent_type: "general-purpose"
    - Stage 1의 변경사항 기반으로 테스트 작성 및 실행
    - 테스트 실패 시 수정 후 재실행
 3. 완료 후 Task를 completed로 업데이트합니다.
@@ -85,7 +75,7 @@ allowed-tools: Agent, Bash, Read, Glob, Grep, TaskCreate, TaskUpdate, TaskList, 
 ### Step 3 - Verifier
 1. TaskCreate로 "[Verify] <최종 검증>" 태스크를 생성합니다 (blocked by Step 2).
 2. Agent 도구로 검증 에이전트를 실행합니다:
-   - subagent_type: "oh-my-claudecode:verifier"
+   - subagent_type: "general-purpose"
    - 코드 품질 검증 (LSP diagnostics)
    - 테스트 통과 확인
    - 변경사항 요약 리포트 생성
