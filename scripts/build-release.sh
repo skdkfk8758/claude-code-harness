@@ -41,7 +41,7 @@ find "$BUNDLE_DIR" -name ".gitkeep" -delete 2>/dev/null || true
 chmod +x "$BUNDLE_DIR/bin/cch"
 
 # Verify required files exist in bundle
-REQUIRED_FILES=("bin/cch" "bin/lib/sources.sh" "manifests/capabilities.json" "manifests/sources.json" "scripts/mode-detector.sh" "scripts/plan-bridge.mjs" "scripts/todo-sync-check.sh")
+REQUIRED_FILES=("bin/cch" "bin/lib/sources.sh" "manifests/capabilities.json" "manifests/sources.json" "scripts/mode-detector.sh" "scripts/plan-bridge.mjs" "scripts/tdd-enforcer.sh")
 missing=0
 for req in "${REQUIRED_FILES[@]}"; do
   if [[ ! -f "$BUNDLE_DIR/$req" ]]; then
