@@ -187,4 +187,4 @@ Stop ──→ summary-writer.mjs (세션 요약)
 1. `docs/plans/2026-03-04-cch-v2-harness-renewal.md` — v2 리뉴얼 설계
 2. `docs/plans/2026-03-04-cch-v2-lightweight-review.md` — 경량화 검토
 3. `docs/plans/2026-03-04-superpowers-integration.md` — Superpowers 통합
-4. `docs/TODO.md` — 전체 작업 항목 추적
+4. `.beads/issues.jsonl` — 전체 작업 항목 추적 (`bash bin/cch beads list`)

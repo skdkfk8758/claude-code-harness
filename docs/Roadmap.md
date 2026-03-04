@@ -68,4 +68,4 @@ v2에서 흡수/제거된 항목:
 2. `docs/plans/2026-03-04-cch-v2-harness-renewal.md` — v2 리뉴얼 설계
 3. `docs/plans/2026-03-04-cch-v2-lightweight-review.md` — 경량화 검토
 4. `docs/plans/2026-03-04-superpowers-integration.md` — Superpowers 통합
-5. `docs/TODO.md` — 전체 작업 항목 추적
+5. `.beads/issues.jsonl` — 전체 작업 항목 추적 (`bash bin/cch beads list`)
