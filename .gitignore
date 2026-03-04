@@ -1,0 +1,41 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# CCH Runtime
+.resolved/
+.claude/cch/
+.claude/settings.local.json
+
+# External sources (auto-installed by cch setup)
+overlays/superpowers/
+overlays/gptaku_plugins/
+overlays/ruflo/
+.omc/
+
+# Session / Runtime
+.dance-of-tal/
+
+# Dev tools
+.serena/
+
+# Build output
+dist/
+
+# Editor
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
+# PinchTab test reports (generated)
+tests/pinchtab/reports/*
+!tests/pinchtab/reports/.gitkeep
+
+# Beads (SQLite DB is local, JSONL is tracked)
+.beads/*.db
+
+# Node (if needed later)
+node_modules/
