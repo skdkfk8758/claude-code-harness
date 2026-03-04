@@ -1,56 +1,55 @@
 #!/usr/bin/env bash
-# Layer 1: Contract - slash command 계약/인자/매핑 검증
+# Layer 1: Contract - v2 bin/cch 명령 계약 검증
 
 CCH="bash $ROOT_DIR/bin/cch"
 
 # Setup first
 $CCH setup &>/dev/null
 
-# --- cch-setup ---
+# --- cch setup ---
 out="$($CCH setup 2>&1)"
 assert_contains "setup: outputs version" "Setting up" "$out"
 assert_contains "setup: creates state dir" "State dir" "$out"
+assert_contains "setup: detects tier" "Tier detected" "$out"
 
-# --- cch-mode ---
+# --- cch mode ---
 out="$($CCH mode code 2>&1)"
 assert_contains "mode code: accepted" "Mode changed" "$out"
 
 out="$($CCH mode plan 2>&1)"
 assert_contains "mode plan: accepted" "Mode changed" "$out"
 
-out="$($CCH mode tool 2>&1)"
-assert_contains "mode tool: accepted" "Mode changed" "$out"
+# Invalid mode (v2: only plan/code valid)
+out="$($CCH mode tool 2>&1)" || true
+assert_contains "mode tool: rejected" "ERROR" "$out"
 
-out="$($CCH mode swarm 2>&1)"
-assert_contains "mode swarm: accepted" "Mode changed" "$out"
-
-# Invalid mode
-out="$($CCH mode invalid 2>&1)" || true
-assert_contains "mode invalid: rejected" "ERROR" "$out"
+out="$($CCH mode swarm 2>&1)" || true
+assert_contains "mode swarm: rejected" "ERROR" "$out"
 
 # No argument = show current
 out="$($CCH mode 2>&1)"
 assert_contains "mode (no arg): shows current" "Current mode" "$out"
 
-# --- cch-status ---
-out="$($CCH doctor --summary 2>&1)"
-assert_contains "doctor: shows version" "Version" "$out"
-assert_contains "doctor: shows mode" "Mode" "$out"
-assert_contains "doctor: shows health" "Health" "$out"
-assert_contains "doctor: shows DOT" "DOT" "$out"
+# --- cch status ---
+out="$($CCH status 2>&1)"
+assert_contains "status: shows version" "Version" "$out"
+assert_contains "status: shows mode" "Mode" "$out"
+assert_contains "status: shows health" "Health" "$out"
+assert_contains "status: shows tier" "Tier" "$out"
 
-# --- cch-dot ---
-$CCH mode code &>/dev/null
-out="$($CCH dot on 2>&1)"
-assert_contains "dot on: accepted in code mode" "DOT experiment: ON" "$out"
+# --- cch status --json ---
+out="$($CCH status --json 2>&1)"
+assert_contains "status --json: has version" "version" "$out"
+assert_contains "status --json: has mode" "mode" "$out"
+assert_contains "status --json: has tier" "tier" "$out"
 
-out="$($CCH dot off 2>&1)"
-assert_contains "dot off: accepted" "DOT experiment: OFF" "$out"
+# --- cch version ---
+out="$($CCH version 2>&1)"
+assert_contains "version: outputs version" "cch" "$out"
 
-$CCH mode plan &>/dev/null
-out="$($CCH dot on 2>&1)" || true
-assert_contains "dot on: rejected in plan mode" "ERROR" "$out"
-
-# --- cch-update ---
-out="$($CCH update check 2>&1)"
-assert_contains "update check: shows version" "Current version" "$out"
+# --- cch help ---
+out="$($CCH help 2>&1)"
+assert_contains "help: shows usage" "Usage" "$out"
+assert_contains "help: lists setup command" "setup" "$out"
+assert_contains "help: lists mode command" "mode" "$out"
+assert_contains "help: lists status command" "status" "$out"

@@ -1,46 +1,44 @@
 #!/usr/bin/env bash
-# Layer 5: Resilience - source 미가용 시 health/fallback 판정 검증
+# v2 Resilience - 복구력/결함 허용 검증
 
 CCH="bash $ROOT_DIR/bin/cch"
-$CCH setup --no-fetch &>/dev/null
 
-# Code mode: resolve and check health
-$CCH mode code &>/dev/null
+# Setup first
+$CCH setup &>/dev/null
+
+# --- Health state persistence ---
+$CCH setup &>/dev/null
+health="$(cat "$CCH_STATE_DIR/health" 2>/dev/null)"
+assert_equals "setup: health state saved" "Healthy" "$health"
+
+# --- Invalid mode rejected ---
+out="$($CCH mode invalid 2>&1)" || true
+assert_contains "invalid mode: error shown" "ERROR" "$out"
+
+# --- Status works after bad state ---
+echo "garbage" > "$CCH_STATE_DIR/mode"
 out="$($CCH status 2>&1)"
-assert_contains "resilience: code mode shows health" "Health" "$out"
+assert_contains "status: works with bad mode" "Mode" "$out"
 
-# Status output contains source info
-assert_contains "resilience: sources section shown" "Sources" "$out"
+# Reset
+$CCH mode code &>/dev/null
 
-# Verify health state file exists after resolve
-assert_file_exists "resilience: health state file exists" "$CCH_STATE_DIR/health"
-health="$(cat "$CCH_STATE_DIR/health")"
-assert_contains "resilience: health is valid value" "$health" "Healthy Degraded Blocked"
+# --- Setup is idempotent ---
+$CCH setup &>/dev/null
+$CCH setup &>/dev/null
+out="$($CCH status 2>&1)"
+assert_contains "double setup: still healthy" "Healthy" "$out"
 
-# DOT fallback: compiled from local sources (code mode only)
-$CCH dot on &>/dev/null 2>&1
-out="$($CCH dot status 2>&1)"
-assert_contains "resilience: DOT status shows Compiled field" "Compiled:" "$out"
-$CCH dot off &>/dev/null 2>&1
+# --- Cleanup handles missing dirs ---
+out="$($CCH setup 2>&1)"
+assert_not_contains "setup: no error on clean state" "ERROR" "$out"
 
-# Rollback creates and restores state
-$CCH update apply &>/dev/null
-rollback_id="$(ls -1 "$CCH_STATE_DIR/rollbacks" 2>/dev/null | tail -1)"
-if [[ -n "$rollback_id" ]]; then
-  out="$($CCH update rollback "$rollback_id" 2>&1)"
-  assert_contains "resilience: rollback runs verification" "Verification" "$out"
-else
-  assert_contains "resilience: rollback point created" "SHOULD_HAVE_ID" ""
-fi
-
-# Status --json returns valid JSON
+# --- status --json is valid JSON ---
 out="$($CCH status --json 2>&1)"
-assert_contains "resilience: json has mode" '"mode"' "$out"
-assert_contains "resilience: json has health" '"health"' "$out"
-assert_contains "resilience: json has resolved" '"resolved"' "$out"
-
-# Resolved state.json exists and is valid
-assert_file_exists "resilience: resolved state exists" "$CCH_STATE_DIR/.resolved/state.json"
-resolved="$(cat "$CCH_STATE_DIR/.resolved/state.json")"
-assert_contains "resilience: resolved has available array" '"available"' "$resolved"
-assert_contains "resilience: resolved has health" '"health"' "$resolved"
+if command -v python3 &>/dev/null; then
+  if echo "$out" | python3 -c "import sys,json;json.load(sys.stdin)" 2>/dev/null; then
+    assert_equals "status --json: valid JSON" "pass" "pass"
+  else
+    assert_equals "status --json: valid JSON" "pass" "fail"
+  fi
+fi

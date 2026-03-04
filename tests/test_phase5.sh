@@ -1,133 +1,65 @@
 #!/usr/bin/env bash
-# test_phase5.sh - Phase 5 Supply Chain & Operations integration verification
-# Task: cch-7xp (#49)
+# Phase 5: 코어 스킬 및 Tier 시스템 통합 검증
 
-set -euo pipefail
+CCH="bash $ROOT_DIR/bin/cch"
 
-CCH_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-PASS=0
-FAIL=0
+# Setup
+$CCH setup &>/dev/null
 
-_check() {
-  local label="$1"
-  local result="$2"  # "pass" or "fail"
-  local detail="${3:-}"
-  if [[ "$result" == "pass" ]]; then
-    echo "  [PASS] $label"
-    PASS=$((PASS + 1))
+# --- capabilities.json schema ---
+cap_file="$ROOT_DIR/manifests/capabilities.json"
+assert_file_exists "capabilities.json exists" "$cap_file"
+
+if [[ -f "$cap_file" ]]; then
+  content="$(cat "$cap_file")"
+  assert_contains "capabilities: has schema_version 2" '"schema_version": 2' "$content"
+  assert_contains "capabilities: has sources" '"sources"' "$content"
+  assert_contains "capabilities: has error_codes" '"error_codes"' "$content"
+fi
+
+# --- check-env.mjs ---
+env_script="$ROOT_DIR/scripts/check-env.mjs"
+assert_file_exists "check-env.mjs exists" "$env_script"
+
+if command -v node &>/dev/null && [[ -f "$env_script" ]]; then
+  out="$(node "$env_script" --cli 2>&1)" || true
+  assert_contains "check-env: shows tier" "Tier" "$out"
+fi
+
+# --- core.mjs ---
+core_script="$ROOT_DIR/scripts/lib/core.mjs"
+assert_file_exists "core.mjs exists" "$core_script"
+
+if command -v node &>/dev/null && [[ -f "$core_script" ]]; then
+  out="$(node "$core_script" tier 2>&1)" || true
+  # Should output a number (0, 1, or 2)
+  if [[ "$out" =~ ^[0-2]$ ]]; then
+    assert_equals "core.mjs tier: returns valid tier" "pass" "pass"
   else
-    echo "  [FAIL] $label${detail:+ — $detail}"
-    FAIL=$((FAIL + 1))
+    assert_equals "core.mjs tier: returns valid tier" "pass" "fail: got '$out'"
   fi
-}
 
-echo "=== Phase 5 Integration Verification ==="
-echo ""
-
-# 1. Release manifest schema exists
-if [[ -f "$CCH_ROOT/manifests/release-manifest-schema.json" ]]; then
-  _check "release-manifest-schema.json exists" "pass"
-else
-  _check "release-manifest-schema.json exists" "fail" "file missing"
+  out="$(node "$core_script" status-json 2>&1)" || true
+  assert_contains "core.mjs status-json: has version" '"version"' "$out"
+  assert_contains "core.mjs status-json: has tier" '"tier"' "$out"
 fi
 
-# 2. Release channels definition exists
-if [[ -f "$CCH_ROOT/manifests/release-channels.json" ]]; then
-  _check "release-channels.json exists" "pass"
+# --- Tier detection in cch ---
+out="$($CCH setup 2>&1)"
+assert_contains "setup: tier detected" "Tier detected" "$out"
+
+# --- Cleanup function ---
+out="$(grep -c '_cleanup_stale_files' "$ROOT_DIR/bin/cch" 2>/dev/null)" || true
+if [[ "$out" -ge 2 ]]; then
+  assert_equals "bin/cch: has cleanup function" "pass" "pass"
 else
-  _check "release-channels.json exists" "fail" "file missing"
+  assert_equals "bin/cch: has cleanup function" "pass" "fail: only $out references"
 fi
 
-# 3. KPI schema exists
-if [[ -f "$CCH_ROOT/manifests/kpi-schema.json" ]]; then
-  _check "kpi-schema.json exists" "pass"
+# --- v2 skill count ---
+skill_count="$(find "$ROOT_DIR/skills" -name 'SKILL.md' -type f | wc -l | tr -d ' ')"
+if [[ "$skill_count" -ge 8 ]]; then
+  assert_equals "at least 8 core skills" "pass" "pass"
 else
-  _check "kpi-schema.json exists" "fail" "file missing"
-fi
-
-# 4. KPI module exists and passes bash syntax check
-if [[ -f "$CCH_ROOT/bin/lib/kpi.sh" ]]; then
-  _check "bin/lib/kpi.sh exists" "pass"
-  if bash -n "$CCH_ROOT/bin/lib/kpi.sh" 2>/dev/null; then
-    _check "bin/lib/kpi.sh syntax valid" "pass"
-  else
-    _check "bin/lib/kpi.sh syntax valid" "fail" "bash -n reported errors"
-  fi
-else
-  _check "bin/lib/kpi.sh exists" "fail" "file missing"
-  _check "bin/lib/kpi.sh syntax valid" "fail" "file missing"
-fi
-
-# 5. SLO definitions exist
-if [[ -f "$CCH_ROOT/manifests/slo-definitions.json" ]]; then
-  _check "slo-definitions.json exists" "pass"
-else
-  _check "slo-definitions.json exists" "fail" "file missing"
-fi
-
-# 6. JSON syntax validation for all Phase 5 JSON files
-echo ""
-echo "--- JSON syntax validation ---"
-json_files=(
-  "$CCH_ROOT/manifests/release-manifest-schema.json"
-  "$CCH_ROOT/manifests/release-channels.json"
-  "$CCH_ROOT/manifests/kpi-schema.json"
-  "$CCH_ROOT/manifests/slo-definitions.json"
-)
-
-for f in "${json_files[@]}"; do
-  fname="$(basename "$f")"
-  if [[ ! -f "$f" ]]; then
-    _check "$fname JSON valid" "fail" "file missing"
-    continue
-  fi
-  # Validate JSON using python3 (portable, no jq required)
-  if python3 -c "import json,sys; json.load(open(sys.argv[1]))" "$f" 2>/dev/null; then
-    _check "$fname JSON valid" "pass"
-  else
-    _check "$fname JSON valid" "fail" "invalid JSON"
-  fi
-done
-
-# Also validate bin/cch loads kpi.sh (check source line present)
-echo ""
-echo "--- Integration checks ---"
-if grep -q 'kpi\.sh' "$CCH_ROOT/bin/cch" 2>/dev/null; then
-  _check "bin/cch loads kpi.sh" "pass"
-else
-  _check "bin/cch loads kpi.sh" "fail" "source line missing"
-fi
-
-if grep -q 'dot-report' "$CCH_ROOT/bin/cch" 2>/dev/null; then
-  _check "bin/cch dispatches dot-report" "pass"
-else
-  _check "bin/cch dispatches dot-report" "fail" "dispatch missing"
-fi
-
-if grep -q '_generate_release_manifest' "$CCH_ROOT/bin/lib/sources.sh" 2>/dev/null; then
-  _check "sources.sh has _generate_release_manifest" "pass"
-else
-  _check "sources.sh has _generate_release_manifest" "fail" "function missing"
-fi
-
-if grep -q '_generate_release_manifest' "$CCH_ROOT/bin/lib/sources.sh" 2>/dev/null && \
-   grep -q 'sources_lock' "$CCH_ROOT/bin/lib/sources.sh" 2>/dev/null; then
-  # Check that sources_lock calls _generate_release_manifest
-  if awk '/^sources_lock\(\)/,/^\}/' "$CCH_ROOT/bin/lib/sources.sh" | grep -q '_generate_release_manifest'; then
-    _check "sources_lock calls _generate_release_manifest" "pass"
-  else
-    _check "sources_lock calls _generate_release_manifest" "fail" "call missing in sources_lock body"
-  fi
-fi
-
-echo ""
-echo "=== Results: $PASS passed, $FAIL failed ==="
-echo ""
-
-if [[ "$FAIL" -eq 0 ]]; then
-  echo "Phase 5 통합 검증 PASS"
-  exit 0
-else
-  echo "Phase 5 통합 검증 FAIL ($FAIL checks failed)"
-  exit 1
+  assert_equals "at least 8 core skills" "pass" "fail: only $skill_count skills"
 fi

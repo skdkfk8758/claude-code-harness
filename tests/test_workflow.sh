@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Layer 4: Workflow - setup→plan→code→status→update e2e 검증
+# v2 Workflow - setup→mode→status→beads 워크플로우 검증
 
 CCH="bash $ROOT_DIR/bin/cch"
 
@@ -13,29 +13,31 @@ assert_contains "workflow: plan mode" "Mode changed" "$out"
 out="$($CCH mode code 2>&1)"
 assert_contains "workflow: code mode" "Mode changed" "$out"
 
-out="$($CCH doctor --summary 2>&1)"
-assert_contains "workflow: status shows code" "Mode:        code" "$out"
+out="$($CCH status 2>&1)"
+assert_contains "workflow: status shows code" "code" "$out"
 
-out="$($CCH update check 2>&1)"
-assert_contains "workflow: update check" "Current version" "$out"
+# --- Plan mode creates plan doc ---
+$CCH mode plan &>/dev/null
+out="$($CCH status 2>&1)"
+assert_contains "workflow: plan mode in status" "plan" "$out"
 
-# DOT cycle within workflow
-out="$($CCH dot on 2>&1)"
-assert_contains "workflow: dot on in code" "DOT experiment: ON" "$out"
+# --- Back to code ---
+$CCH mode code &>/dev/null
+out="$($CCH mode 2>&1)"
+assert_contains "workflow: back to code" "code" "$out"
 
-out="$($CCH doctor --summary 2>&1)"
-assert_contains "workflow: status shows DOT on" "DOT:         true" "$out"
+# --- Beads workflow ---
+out="$(bash "$ROOT_DIR/bin/cch" beads list 2>&1)" || true
+assert_not_contains "beads list: no crash" "command not found" "$out"
 
-out="$($CCH dot off 2>&1)"
-assert_contains "workflow: dot off" "DOT experiment: OFF" "$out"
+# --- Status JSON reflects mode ---
+$CCH mode code &>/dev/null
+out="$($CCH status --json 2>&1)"
+assert_contains "status json: reflects code mode" '"code"' "$out"
 
-# Work item lifecycle
-$CCH work create wf-test "workflow test item" &>/dev/null
-out="$($CCH work transition wf-test doing 2>&1)"
-assert_contains "workflow: work todo→doing" "todo → doing" "$out"
+$CCH mode plan &>/dev/null
+out="$($CCH status --json 2>&1)"
+assert_contains "status json: reflects plan mode" '"plan"' "$out"
 
-out="$($CCH work transition wf-test done 2>&1)"
-assert_contains "workflow: work doing→done" "doing → done" "$out"
-
-out="$($CCH work list done 2>&1)"
-assert_contains "workflow: done item in list" "wf-test" "$out"
+# Reset
+$CCH mode code &>/dev/null

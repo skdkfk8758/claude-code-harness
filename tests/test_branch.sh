@@ -119,9 +119,9 @@ assert_contains "branch: cleanup reports count" "1 merged" "$out"
 
 # Verify state file was removed after cleanup
 if [[ ! -f "$sf" ]]; then
-  TOTAL=$((TOTAL + 1)); PASS=$((PASS + 1)); printf "  ${GREEN}PASS${NC} branch: cleanup removes state file\n"
+  _TOTAL=$((_TOTAL + 1)); _PASS=$((_PASS + 1)); printf "  ${_GREEN}PASS${_RESET} branch: cleanup removes state file\n"
 else
-  TOTAL=$((TOTAL + 1)); FAIL=$((FAIL + 1)); printf "  ${RED}FAIL${NC} branch: cleanup removes state file\n"
+  _TOTAL=$((_TOTAL + 1)); _FAIL=$((_FAIL + 1)); printf "  ${_RED}FAIL${_RESET} branch: cleanup removes state file\n"
 fi
 
 # --- Test: cleanup skips active branches ---
@@ -160,23 +160,23 @@ assert_exit_code "branch: create no args returns error" 1 "$rc"
 # --- Test: plan-bridge branch integration ---
 # Verify plan-bridge.mjs has branch-related functions
 if grep -q "branch" "$ROOT_DIR/scripts/plan-bridge.mjs" 2>/dev/null; then
-  TOTAL=$((TOTAL + 1)); PASS=$((PASS + 1)); printf "  ${GREEN}PASS${NC} plan-bridge: contains branch integration\n"
+  _TOTAL=$((_TOTAL + 1)); _PASS=$((_PASS + 1)); printf "  ${_GREEN}PASS${_RESET} plan-bridge: contains branch integration\n"
 else
-  TOTAL=$((TOTAL + 1)); FAIL=$((FAIL + 1)); printf "  ${RED}FAIL${NC} plan-bridge: contains branch integration\n"
+  _TOTAL=$((_TOTAL + 1)); _FAIL=$((_FAIL + 1)); printf "  ${_RED}FAIL${_RESET} plan-bridge: contains branch integration\n"
 fi
 
 # --- Test: cch-pr skill has branch workflow ---
 if grep -q "branch" "$ROOT_DIR/skills/cch-pr/SKILL.md" 2>/dev/null; then
-  TOTAL=$((TOTAL + 1)); PASS=$((PASS + 1)); printf "  ${GREEN}PASS${NC} cch-pr: skill has branch workflow\n"
+  _TOTAL=$((_TOTAL + 1)); _PASS=$((_PASS + 1)); printf "  ${_GREEN}PASS${_RESET} cch-pr: skill has branch workflow\n"
 else
-  TOTAL=$((TOTAL + 1)); FAIL=$((FAIL + 1)); printf "  ${RED}FAIL${NC} cch-pr: skill has branch workflow\n"
+  _TOTAL=$((_TOTAL + 1)); _FAIL=$((_FAIL + 1)); printf "  ${_RED}FAIL${_RESET} cch-pr: skill has branch workflow\n"
 fi
 
 # --- Test: cch-commit skill has branch trailer ---
 if grep -q "Branch" "$ROOT_DIR/skills/cch-commit/SKILL.md" 2>/dev/null; then
-  TOTAL=$((TOTAL + 1)); PASS=$((PASS + 1)); printf "  ${GREEN}PASS${NC} cch-commit: skill has branch trailer\n"
+  _TOTAL=$((_TOTAL + 1)); _PASS=$((_PASS + 1)); printf "  ${_GREEN}PASS${_RESET} cch-commit: skill has branch trailer\n"
 else
-  TOTAL=$((TOTAL + 1)); FAIL=$((FAIL + 1)); printf "  ${RED}FAIL${NC} cch-commit: skill has branch trailer\n"
+  _TOTAL=$((_TOTAL + 1)); _FAIL=$((_FAIL + 1)); printf "  ${_RED}FAIL${_RESET} cch-commit: skill has branch trailer\n"
 fi
 
 # --- Cleanup ---
