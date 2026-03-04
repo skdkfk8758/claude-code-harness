@@ -56,13 +56,23 @@ export function readManifest() {
 export function calculateTier() {
   let tier = 0;
 
-  // Check superpowers plugin
-  const spDir = join(
-    process.env.HOME || "",
-    ".claude/plugins/cache/superpowers-marketplace"
-  );
-  if (existsSync(spDir)) {
-    tier = 1;
+  // Check any installed plugin (generic detection)
+  const cacheDir = join(process.env.HOME || "", ".claude/plugins/cache");
+  if (existsSync(cacheDir)) {
+    try {
+      const marketplaces = readdirSync(cacheDir);
+      const hasPlugins = marketplaces.some((mp) => {
+        const mpDir = join(cacheDir, mp);
+        try {
+          return readdirSync(mpDir).length > 0;
+        } catch {
+          return false;
+        }
+      });
+      if (hasPlugins) tier = 1;
+    } catch {
+      // Permission or access errors
+    }
   }
 
   // Check MCP servers
