@@ -14,7 +14,7 @@
  *   .claude/cch/last_summary   — written by this script
  */
 
-import { mkdirSync, readFileSync, writeFileSync, existsSync, appendFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 
 const STATE_DIR = join(process.cwd(), ".claude", "cch");
@@ -58,40 +58,6 @@ function summarizeAnswer(text) {
   }
 
   return "";
-}
-
-/**
- * Append summary to .omc/notepad.md Working Memory section.
- * Creates the file and section if they don't exist.
- */
-function appendToNotepad(cwd, summaryText) {
-  const notepadPath = join(cwd, ".omc", "notepad.md");
-  const timestamp = new Date().toISOString();
-  const entry = `\n- [${timestamp}] ${summaryText}`;
-
-  try {
-    mkdirSync(join(cwd, ".omc"), { recursive: true });
-
-    if (!existsSync(notepadPath)) {
-      writeFileSync(notepadPath, `# Notepad\n\n## Working Memory\n${entry}\n`, "utf8");
-      return;
-    }
-
-    const content = readFileSync(notepadPath, "utf8");
-    if (content.includes("## Working Memory")) {
-      // Append entry after the Working Memory header line
-      const updated = content.replace(
-        /(## Working Memory\n)/,
-        `$1${entry}\n`
-      );
-      writeFileSync(notepadPath, updated, "utf8");
-    } else {
-      // Section missing — append it
-      appendFileSync(notepadPath, `\n## Working Memory\n${entry}\n`, "utf8");
-    }
-  } catch {
-    // Never block execution
-  }
 }
 
 /** Summarize the user's question */
@@ -152,11 +118,6 @@ try {
     // Also write to global fallback location
     mkdirSync(STATE_DIR, { recursive: true });
     writeFileSync(GLOBAL_SUMMARY_FILE, summary, "utf8");
-    // Append compact Q→A line to OMC notepad working memory
-    const notepadEntry = qSummary && aSummary
-      ? `Q: ${qSummary} | A: ${aSummary}`
-      : qSummary || aSummary;
-    appendToNotepad(process.cwd(), notepadEntry);
   }
 } catch {
   // Never block tool execution

@@ -11,7 +11,7 @@
  * 6. Injects pipeline trigger via additionalContext
  */
 
-import { readFileSync, writeFileSync, readdirSync, statSync, mkdirSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, readdirSync, statSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { execSync } from "node:child_process";
 import { parsePlanDocument } from "./lib/plan-parser.mjs";
@@ -21,26 +21,7 @@ const CCH_ROOT = process.env.CLAUDE_PLUGIN_ROOT || process.cwd();
 const CCH_STATE_DIR = join(process.cwd(), ".claude", "cch");
 const PLANS_DIR = join(process.cwd(), "docs", "plans");
 const EXEC_PLAN_FILE = join(CCH_STATE_DIR, "execution-plan.json");
-const OMC_STATE_DIR = join(process.cwd(), ".omc", "state");
-const OMC_STATE_FILE = join(OMC_STATE_DIR, "autopilot-state.json");
 const CMD_TIMEOUT = 800; // 4 cmds × 1.6s = 6.4s max (closer to 5s hook budget)
-
-/**
- * Write OMC autopilot state to .omc/state/autopilot-state.json.
- * Merges the provided fields with any existing state.
- */
-function writeOmcState(fields) {
-  try {
-    mkdirSync(OMC_STATE_DIR, { recursive: true });
-    const existing = existsSync(OMC_STATE_FILE)
-      ? JSON.parse(readFileSync(OMC_STATE_FILE, "utf8"))
-      : {};
-    const updated = { ...existing, ...fields, updated_at: new Date().toISOString() };
-    writeFileSync(OMC_STATE_FILE, JSON.stringify(updated, null, 2), "utf8");
-  } catch {
-    // Never block execution
-  }
-}
 
 /**
  * Find the most recently modified plan document for today.
@@ -127,13 +108,9 @@ function main() {
       return;
     }
 
-    // OMC state: pipeline starting
-    writeOmcState({ active: true, current_phase: "plan-bridge", iteration: 1 });
-
     // Step 1: Find today's plan document
     const planFile = findTodayPlan();
     if (!planFile) {
-      writeOmcState({ active: false, current_phase: "plan-bridge:no-plan" });
       console.log(JSON.stringify(buildBridgeOutput(null, { success: false, reason: BRIDGE_REASONS.NO_PLAN_FOUND })));
       return;
     }
@@ -178,9 +155,6 @@ function main() {
     // Step 7: Save execution-plan.json
     mkdirSync(CCH_STATE_DIR, { recursive: true });
     writeFileSync(EXEC_PLAN_FILE, JSON.stringify(execPlan, null, 2), "utf8");
-    // OMC state: plan saved
-    writeOmcState({ current_phase: "plan-bridge:plan-saved", work_id: parsed.work_id });
-
     // Step 8: Create bead (primary) + branch + switch mode
     const beadsResults = runCchBatch([
       `beads create "${parsed.goal}" --priority 1 --labels "plan:${parsed.work_id}"`,
@@ -200,9 +174,6 @@ function main() {
 
     // G9: Collect warnings from failed commands
     const warnings = [...beadsResults, ...batchResults].filter((r) => !r.ok);
-
-    // OMC state: pipeline complete
-    writeOmcState({ active: false, current_phase: "plan-bridge:complete", completed_at: new Date().toISOString() });
 
     // Step 9: Output additionalContext with pipeline trigger
     console.log(JSON.stringify(buildBridgeOutput(parsed, { success: true }, warnings)));

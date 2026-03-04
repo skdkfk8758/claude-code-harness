@@ -95,7 +95,7 @@ export ROOT_DIR
 
 # Clean state before each test layer
 clean_state() {
-  rm -rf "$ROOT_DIR/.claude/cch" "$ROOT_DIR/.resolved"
+  rm -rf "$ROOT_DIR/.claude/cch"
 }
 
 # --- Run ---
