@@ -1,25 +1,34 @@
 ---
 name: cch-commit
-description: Analyze changes and create logical, well-structured commits with work-item trailers.
+description: Analyze changes and create logical, well-structured commits with Bead trailers.
 user-invocable: true
 allowed-tools: Bash, Read, Glob, Grep, Agent, Write
 ---
 
 # CCH Commit - 논리 단위 자동 분할 커밋
 
-변경사항을 분석하여 논리적 단위로 그룹화하고, work-item 트레일러가 포함된 커밋을 생성합니다.
+변경사항을 분석하여 논리적 단위로 그룹화하고, Bead 트레일러가 포함된 커밋을 생성합니다.
 
 ## Steps
 
 ### Step 1 - 수집 (병렬)
 
-다음 5개를 **동시에** 실행합니다:
+다음을 **동시에** 실행합니다:
 
 1. `git status --porcelain` (변경 파일 목록)
 2. `git diff` (unstaged 변경 내용)
 3. `git diff --cached` (staged 변경 내용)
 4. `git log --oneline -5` (최근 커밋 메시지 스타일 파악)
-5. `bin/cch work list doing` (활성 work-item 확인)
+5. `.claude/cch/execution-plan.json` 읽기 (bead_id 확인)
+6. `git rev-parse --abbrev-ref HEAD` (현재 브랜치명)
+
+Step 1 완료 후 **브랜치명을 이용해 bead를 결정**합니다 (순서대로 시도):
+
+1. `.claude/cch/branches/<branch>.yaml` 파일이 있으면 읽어 `bead_id` 필드 추출 → 이후 단계에서 이 값을 사용
+2. 없으면 `.claude/cch/execution-plan.json`에서 `bead_id` 추출
+3. 둘 다 없으면 bead 없음으로 진행
+
+결정된 bead 정보는 Step 4 커밋 트레일러 및 Step 7 보고에 사용됩니다.
 
 변경사항이 없으면 "커밋할 변경사항이 없습니다" 를 보고하고 종료합니다.
 
@@ -50,10 +59,28 @@ allowed-tools: Bash, Read, Glob, Grep, Agent, Write
 | 1 | feat | ... | file1, file2 |
 | 2 | fix  | ... | file3 |
 
-Work-Item: <활성 work-item ID 또는 "없음">
+Bead: <활성 bead ID 또는 "없음">
 ```
 
-사용자가 수정을 요청하면 계획을 조정합니다. 승인하면 Step 4로 진행합니다.
+사용자가 수정을 요청하면 계획을 조정합니다. 승인하면 Step 3.5로 진행합니다.
+
+### Step 3.5 - TDD Pre-Check
+
+커밋 실행 전에 TDD 정책을 검증합니다:
+
+1. 아키텍처 레벨 확인:
+```bash
+bash "<plugin-root>/bin/cch" arch level
+```
+
+2. 레벨이 설정되어 있으면 해당 레벨의 `min_test_ratio`를 적용하여 커밋 대상 소스 파일에 대응 테스트가 있는지 검증합니다:
+   - 테스트 파일 패턴: `test_<name>.*`, `<name>.test.*`, `<name>.spec.*`
+   - 비소스 파일(`.md`, `.json`, `.yaml`, `.toml`, `.env`, `.lock`)은 검증 대상에서 제외
+
+3. 결과 표시:
+   - 모든 소스 파일에 테스트가 있으면: `✅ TDD Check: N/N 파일 테스트 존재`
+   - 누락이 있으면: `⚠️ TDD Check: N개 파일에 대응 테스트 없음` + 파일 목록
+   - 누락 시에도 **차단하지 않음** — 경고만 표시하고 사용자 확인 후 Step 4로 진행
 
 ### Step 4 - 실행
 
@@ -68,11 +95,11 @@ Work-Item: <활성 work-item ID 또는 "없음">
 
 <optional body>
 
-Work-Item: <work-id>
+Bead: <bead-id>
 Co-Authored-By: Claude <noreply@anthropic.com>
 ```
 
-- 활성 work-item이 있으면 `Work-Item:` 트레일러 포함
+- bead가 감지되면 `Bead:` 트레일러 포함
 - `Co-Authored-By` 트레일러 항상 포함
 
 ### Step 5 - Simplify (자동 코드 정리)
@@ -180,6 +207,8 @@ Step 4에서 생성된 커밋의 코드 파일을 자동으로 정리합니다.
 
 ```
 ## 커밋 완료
+
+Branch: <현재 브랜치명> (bead: <연결된 bead ID 또는 "없음">)
 
 | # | 해시 | 타입 | 설명 | 파일수 |
 |---|------|------|------|--------|

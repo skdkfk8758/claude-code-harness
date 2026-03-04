@@ -52,18 +52,14 @@ function setup() {
   utimesSync(TEST_PLAN_FILE, futureTime, futureTime);
 
   // Clean previous execution plan
-  if (existsSync(EXEC_PLAN_FILE)) {
-    rmSync(EXEC_PLAN_FILE);
-  }
+  rmSync(EXEC_PLAN_FILE, { force: true });
 }
 
 // --- Teardown ---
 function teardown() {
-  if (existsSync(TEST_PLAN_FILE)) rmSync(TEST_PLAN_FILE);
-  if (existsSync(EXEC_PLAN_FILE)) rmSync(EXEC_PLAN_FILE);
-  // Clean test work item
-  const workDir = join(STATE_DIR, "work-items", "bridge-test");
-  if (existsSync(workDir)) rmSync(workDir, { recursive: true });
+  rmSync(TEST_PLAN_FILE, { force: true });
+  rmSync(EXEC_PLAN_FILE, { force: true });
+  rmSync(join(STATE_DIR, "work-items", "bridge-test"), { recursive: true, force: true });
 }
 
 // --- Test ---
@@ -99,6 +95,10 @@ function testBridgeFlow() {
     assert.equal(execPlan.pipeline, "cch-team");
     assert.equal(execPlan.status, "ready");
 
+    // G13: branch field in execution-plan.json
+    assert.ok(execPlan.branch, "execution-plan should have branch field");
+    assert.equal(execPlan.branch, "feat/bridge-test", "branch should be feat/<work_id>");
+
     console.log("  PASS: testBridgeFlow");
   } finally {
     teardown();
@@ -119,7 +119,75 @@ function testNonExitPlanMode() {
   console.log("  PASS: testNonExitPlanMode");
 }
 
+// Verify plan-bridge handles ExitPlanMode from a cwd with no docs/plans/ gracefully.
+// It should still return { continue: true } without crashing.
+function testNoPlanFileGraceful() {
+  // Run the bridge from a temp directory that has no docs/plans/ directory,
+  // so findTodayPlan() finds nothing and the bridge falls back gracefully.
+  const tmpCwd = join(STATE_DIR, "tmp-nocwd-" + Date.now());
+  mkdirSync(tmpCwd, { recursive: true });
+
+  const input = JSON.stringify({ tool_name: "ExitPlanMode" });
+  try {
+    const output = execSync(
+      `echo '${input}' | node ${JSON.stringify(join(CWD, "scripts/plan-bridge.mjs"))}`,
+      { cwd: tmpCwd, timeout: 10000, encoding: "utf8" }
+    );
+    const result = JSON.parse(output.trim());
+    assert.equal(result.continue, true, "continue should be true even when no plan file exists");
+    // When no plan is found, bridge should not inject CCH activation context
+    const ctx = result.hookSpecificOutput?.additionalContext || "";
+    assert.ok(!ctx.includes("[CCH BRIDGE ACTIVATED]"), "should not inject ACTIVATED marker when no plan found");
+  } finally {
+    rmSync(tmpCwd, { recursive: true, force: true });
+  }
+
+  console.log("  PASS: testNoPlanFileGraceful");
+}
+
+// Verify execution-plan.json has all required fields per the schema.
+function testExecutionPlanSchema() {
+  setup();
+
+  try {
+    const input = JSON.stringify({ tool_name: "ExitPlanMode" });
+    execSync(
+      `echo '${input}' | node scripts/plan-bridge.mjs`,
+      { cwd: CWD, timeout: 10000, encoding: "utf8" }
+    );
+
+    assert.ok(existsSync(EXEC_PLAN_FILE), "execution-plan.json should exist");
+
+    const plan = JSON.parse(readFileSync(EXEC_PLAN_FILE, "utf8"));
+
+    // Required top-level fields
+    const required = ["version", "work_id", "goal", "tasks", "pipeline", "status", "branch"];
+    for (const field of required) {
+      assert.ok(field in plan, `execution-plan.json missing required field: ${field}`);
+    }
+
+    // tasks must be an array
+    assert.ok(Array.isArray(plan.tasks), "tasks must be an array");
+
+    // status must be 'ready'
+    assert.equal(plan.status, "ready", "status must be 'ready'");
+
+    // pipeline must be 'cch-team'
+    assert.equal(plan.pipeline, "cch-team", "pipeline must be 'cch-team'");
+
+    // branch must follow feat/<work_id> convention
+    assert.match(plan.branch, /^feat\//, "branch must start with feat/");
+
+  } finally {
+    teardown();
+  }
+
+  console.log("  PASS: testExecutionPlanSchema");
+}
+
 console.log("plan-bridge integration tests:");
 testBridgeFlow();
 testNonExitPlanMode();
+testNoPlanFileGraceful();
+testExecutionPlanSchema();
 console.log("All plan-bridge integration tests passed.");

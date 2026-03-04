@@ -18,6 +18,15 @@ argument-hint: <아이디어, 설계문서 경로, 또는 플랜문서 경로>
 
 ---
 
+## Guidelines
+
+### Notepad Wisdom
+- 작업 시작 전 `notepad_read`로 이전 세션의 컨텍스트를 확인한다.
+- 중요한 설계 결정이나 발견사항은 `notepad_write_working`으로 기록한다.
+- 반복적으로 사용되는 패턴이나 규칙은 `notepad_write_manual`로 영구 저장한다.
+
+---
+
 ## Step 0: 입력 분석 (Smart Entry)
 
 ARGUMENTS를 파싱하여 시작 Phase를 결정한다.
@@ -67,7 +76,7 @@ ARGUMENTS를 파싱하여 시작 Phase를 결정한다.
 다음을 **병렬로** 읽는다:
 - `docs/Architecture.md` (있는 경우)
 - `docs/PRD.md` (있는 경우)
-- `docs/TODO.md` — 현재 Phase 및 진행 상황 파악
+- `bash bin/cch beads list` — 현재 태스크 및 진행 상황 파악
 - `docs/plans/` 디렉터리 목록 — 기존 설계 문서 파악
 - 최근 커밋 5개: `git log --oneline -5`
 
@@ -213,70 +222,18 @@ docs/plans/YYYY-MM-DD-<topic>-impl.md
 구현 플랜 문서에서 `### Task N: <제목>` 패턴으로 Task 목록을 추출한다.
 각 Task의 제목, 세부 Steps, 의존성(Task M)을 파악한다.
 
-### 3-3. docs/TODO.md 업데이트
+### 3-3. Beads 항목 생성
 
-**a. 현재 상태 읽기**
+각 Task에 대해 Bead를 생성한다:
 
-`docs/TODO.md`를 Read로 읽는다.
-파일이 존재하지 않으면 아래 템플릿으로 새로 생성한다:
-```markdown
-# TODO: <프로젝트명>
-
-- 작성일: YYYY-MM-DD
-- 갱신일: YYYY-MM-DD
-- 상태: Phase 1 예정
-- 전체 항목: (없음)
-
-## Critical Path
-
-```
-(비어 있음)
-```
+```bash
+bash bin/cch beads create "<Task 제목>" --priority 2 --labels "phase:<XX>,plan:<work-id>"
 ```
 
-**b. 마지막 항목 ID 파싱**
+- 의존성이 있는 Task는 `bash bin/cch beads dep <bead-id> <depends-on-bead-id>` 로 연결
+- 생성된 bead-id를 기록하여 이후 단계에서 사용
 
-상태 헤더에서 `#1~#N` 패턴으로 마지막 ID(N)를 파악한다.
-새 항목은 `#(N+1)`부터 시작한다.
-
-**c. Phase 코드 결정**
-
-기존 Phase 코드 목록(PL, BW, PT, INIT 등)을 확인하고 새 Phase 코드를 결정한다.
-플랜 주제에서 2~4자리 영문 대문자 코드를 생성한다 (예: `cch-plan` → `CP`).
-기존 코드와 충돌 시 다른 코드를 선택한다.
-
-**d. Critical Path 섹션 업데이트**
-
-Critical Path 코드 블록(``` 로 감싸진 영역)의 닫는 ``` 바로 앞에 새 Phase 라인을 추가한다:
-```
-Phase XX:  #N+1 → #N+2 → ... → #N+M
-```
-
-**e. 새 Phase 블록 추가**
-
-파일 하단(마지막 Phase 블록 뒤)에 새 Phase 블록을 추가한다:
-
-```markdown
----
-
-## Phase XX: <topic> 구현
-
-- [ ] **#N+1** <Task 1 제목>
-  - <Step 1 요약>
-  - <Step 2 요약>
-  - 의존: 없음
-
-- [ ] **#N+2** <Task 2 제목>
-  - <Step 요약>
-  - 의존: #N+1
-```
-
-**f. 상태 헤더 갱신**
-
-파일 상단의 상태 헤더를 갱신한다:
-- `갱신일: YYYY-MM-DD` → 오늘 날짜
-- `상태:` → 새 Phase XX 추가 ("Phase XX 예정" 또는 기존 문구에 추가)
-- `전체 항목: #1~#(N+M) (완료 X, 미완료 Y+M)`
+> **NOTE:** Beads가 태스크 SSOT입니다. `bd ready`로 작업 가능 항목을 조회합니다.
 
 ### 3-4. TaskCreate 생성
 
@@ -286,12 +243,24 @@ Phase XX:  #N+1 → #N+2 → ... → #N+M
 - `description`: 플랜 문서의 해당 Task 전체 내용
 - 의존성이 있는 Task는 이전 TaskCreate 완료 후 `addBlockedBy` 설정
 
-### 3-5. 결과 요약 출력
+### 3-5. Beads 항목 생성 (dual-write)
+
+`.beads/` 디렉터리가 존재하면 각 Task에 대해 Beads 항목도 생성한다:
+
+```bash
+bash bin/cch beads create "<Task 제목>" --priority 2 --labels "phase:<XX>,plan:<work-id>"
+```
+
+- 의존성이 있는 Task는 `bash bin/cch beads dep <bead-id> <depends-on-bead-id>` 로 연결
+- `.beads/`가 없으면 이 단계를 건너뛴다 (경고 없음)
+
+### 3-6. 결과 요약 출력
 
 ```
 TODO Sync 완료:
 - 추가된 항목: M개 (#N+1 ~ #N+M)
 - Phase 코드: XX
+- Beads: M개 항목 생성됨 (또는 "스킵 — .beads/ 미설정")
 - TaskList: M개 항목 생성됨
 ```
 
@@ -311,7 +280,7 @@ TaskList를 호출하여 현재 세션 작업 목록을 출력한다.
 
 - **설계 문서** (Phase 1 수행 시): `docs/plans/YYYY-MM-DD-<topic>-design.md`
 - **구현 플랜** (Phase 2 수행 시): `docs/plans/YYYY-MM-DD-<topic>-impl.md`
-- **TODO.md 추가**: #N+1 ~ #N+M (M개 항목, Phase XX)
+- **Beads 생성**: M개 항목 (Phase XX)
 
 ### 다음 단계
 

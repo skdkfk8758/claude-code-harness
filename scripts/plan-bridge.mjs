@@ -11,17 +11,36 @@
  * 6. Injects pipeline trigger via additionalContext
  */
 
-import { readFileSync, writeFileSync, readdirSync, statSync, mkdirSync } from "node:fs";
-import { join, basename } from "node:path";
+import { readFileSync, writeFileSync, readdirSync, statSync, mkdirSync, existsSync } from "node:fs";
+import { join } from "node:path";
 import { execSync } from "node:child_process";
 import { parsePlanDocument } from "./lib/plan-parser.mjs";
-import { buildBridgeOutput } from "./lib/bridge-output.mjs";
+import { buildBridgeOutput, BRIDGE_REASONS } from "./lib/bridge-output.mjs";
 
-const CCH_ROOT = process.env.CLAUDE_PLUGIN_ROOT || join(process.cwd());
+const CCH_ROOT = process.env.CLAUDE_PLUGIN_ROOT || process.cwd();
 const CCH_STATE_DIR = join(process.cwd(), ".claude", "cch");
 const PLANS_DIR = join(process.cwd(), "docs", "plans");
 const EXEC_PLAN_FILE = join(CCH_STATE_DIR, "execution-plan.json");
-const CMD_TIMEOUT = 2000; // 2s per shell command
+const OMC_STATE_DIR = join(process.cwd(), ".omc", "state");
+const OMC_STATE_FILE = join(OMC_STATE_DIR, "autopilot-state.json");
+const CMD_TIMEOUT = 800; // 4 cmds × 1.6s = 6.4s max (closer to 5s hook budget)
+
+/**
+ * Write OMC autopilot state to .omc/state/autopilot-state.json.
+ * Merges the provided fields with any existing state.
+ */
+function writeOmcState(fields) {
+  try {
+    mkdirSync(OMC_STATE_DIR, { recursive: true });
+    const existing = existsSync(OMC_STATE_FILE)
+      ? JSON.parse(readFileSync(OMC_STATE_FILE, "utf8"))
+      : {};
+    const updated = { ...existing, ...fields, updated_at: new Date().toISOString() };
+    writeFileSync(OMC_STATE_FILE, JSON.stringify(updated, null, 2), "utf8");
+  } catch {
+    // Never block execution
+  }
+}
 
 /**
  * Find the most recently modified plan document for today.
@@ -37,32 +56,58 @@ function findTodayPlan() {
     return null;
   }
 
-  const candidates = files
-    .filter((f) => f.startsWith(today) && f.endsWith(".md"))
-    .map((f) => ({
-      name: f,
-      path: join(PLANS_DIR, f),
-      mtime: statSync(join(PLANS_DIR, f)).mtimeMs,
-    }))
+  const matched = files.filter((f) => f.startsWith(today) && f.endsWith(".md"));
+  if (matched.length === 0) return null;
+  if (matched.length === 1) {
+    return { name: matched[0], path: join(PLANS_DIR, matched[0]) };
+  }
+
+  // Multiple candidates — stat to pick the most recent
+  const candidates = matched
+    .map((f) => {
+      const fullPath = join(PLANS_DIR, f);
+      return { name: f, path: fullPath, mtime: statSync(fullPath).mtimeMs };
+    })
     .sort((a, b) => b.mtime - a.mtime);
 
-  return candidates[0] || null;
+  return candidates[0];
 }
 
 /**
- * Run a cch CLI command, swallowing errors.
+ * G8: Infer branch type from plan filename via substring matching.
+ * Default: "feat"
  */
-function runCch(args) {
-  try {
-    execSync(`bash "${join(CCH_ROOT, "bin", "cch")}" ${args}`, {
-      timeout: CMD_TIMEOUT,
-      cwd: process.cwd(),
-      stdio: "pipe",
-    });
-    return true;
-  } catch {
-    return false;
+function inferBranchType(planFilename) {
+  const name = planFilename.toLowerCase();
+  if (name.includes("-fix") || name.includes("-bugfix") || name.includes("-hotfix")) return "fix";
+  if (name.includes("-refactor")) return "refactor";
+  if (name.includes("-docs")) return "docs";
+  if (name.includes("-chore")) return "chore";
+  return "feat";
+}
+
+/**
+ * G9: Run cch CLI commands individually, collecting per-command results.
+ * Returns array of { cmd, ok, error? } objects for warning visibility.
+ */
+function runCchBatch(argsList) {
+  const cchBin = join(CCH_ROOT, "bin", "cch");
+  const results = [];
+  for (const args of argsList) {
+    try {
+      const stdout = execSync(`bash "${cchBin}" ${args}`, {
+        timeout: CMD_TIMEOUT * 2,
+        cwd: process.cwd(),
+        stdio: "pipe",
+        shell: true,
+        encoding: "utf8",
+      });
+      results.push({ cmd: args, ok: true, output: stdout });
+    } catch (err) {
+      results.push({ cmd: args, ok: false, error: err.stderr?.trim() || err.message });
+    }
   }
+  return results;
 }
 
 function main() {
@@ -71,16 +116,21 @@ function main() {
     const input = JSON.parse(readFileSync(0, "utf8"));
     const toolName = input.tool_name || "";
 
-    // Safety check — only run for ExitPlanMode
+    // Defense-in-depth: hooks.json matcher already filters for ExitPlanMode,
+    // but guard here in case this script is invoked outside the hook system.
     if (toolName !== "ExitPlanMode") {
       console.log(JSON.stringify({ continue: true }));
       return;
     }
 
+    // OMC state: pipeline starting
+    writeOmcState({ active: true, current_phase: "plan-bridge", iteration: 1 });
+
     // Step 1: Find today's plan document
     const planFile = findTodayPlan();
     if (!planFile) {
-      console.log(JSON.stringify(buildBridgeOutput(null, { success: false, reason: "no_plan_found" })));
+      writeOmcState({ active: false, current_phase: "plan-bridge:no-plan" });
+      console.log(JSON.stringify(buildBridgeOutput(null, { success: false, reason: BRIDGE_REASONS.NO_PLAN_FOUND })));
       return;
     }
 
@@ -91,17 +141,21 @@ function main() {
 
     // Step 3: Validate — not an empty template
     if (parsed.is_empty_template) {
-      console.log(JSON.stringify(buildBridgeOutput(parsed, { success: false, reason: "empty_template" })));
+      console.log(JSON.stringify(buildBridgeOutput(parsed, { success: false, reason: BRIDGE_REASONS.EMPTY_TEMPLATE })));
       return;
     }
 
     // Step 4: Validate — has tasks
     if (parsed.tasks.length === 0) {
-      console.log(JSON.stringify(buildBridgeOutput(parsed, { success: false, reason: "no_tasks" })));
+      console.log(JSON.stringify(buildBridgeOutput(parsed, { success: false, reason: BRIDGE_REASONS.NO_TASKS })));
       return;
     }
 
-    // Step 5: Build execution plan JSON
+    // Step 5: Infer branch info (G8, G10)
+    const branchType = inferBranchType(planFile.name);
+    const branchName = `${branchType}/${parsed.work_id}`;
+
+    // Step 6: Build execution plan JSON (G13: branch field)
     const execPlan = {
       version: "1",
       created_at: new Date().toISOString(),
@@ -109,6 +163,7 @@ function main() {
       plan_file: parsed.plan_file,
       status: "ready",
       goal: parsed.goal,
+      branch: branchName,
       tasks: parsed.tasks.map((t, i) => ({ id: i + 1, ...t })),
       acceptance_criteria: parsed.acceptance_criteria,
       changed_files: parsed.changed_files,
@@ -116,19 +171,37 @@ function main() {
       mode: "code",
     };
 
-    // Step 6: Save execution-plan.json
+    // Step 7: Save execution-plan.json
     mkdirSync(CCH_STATE_DIR, { recursive: true });
     writeFileSync(EXEC_PLAN_FILE, JSON.stringify(execPlan, null, 2), "utf8");
+    // OMC state: plan saved
+    writeOmcState({ current_phase: "plan-bridge:plan-saved", work_id: parsed.work_id });
 
-    // Step 7: Create work item + transition (ignore if already exists)
-    runCch(`work create "${parsed.work_id}" "${parsed.goal}"`);
-    runCch(`work transition "${parsed.work_id}" doing`);
+    // Step 8: Create bead (primary) + branch + switch mode
+    const beadsResults = runCchBatch([
+      `beads create "${parsed.goal}" --priority 1 --labels "plan:${parsed.work_id}"`,
+    ]);
+    if (beadsResults[0]?.ok) {
+      const beadMatch = (beadsResults[0].output || "").match(/cch-[a-z0-9]+/);
+      if (beadMatch) {
+        execPlan.bead_id = beadMatch[0];
+        writeFileSync(EXEC_PLAN_FILE, JSON.stringify(execPlan, null, 2), "utf8");
+      }
+    }
 
-    // Step 8: Switch mode to code
-    runCch("mode code");
+    const batchResults = runCchBatch([
+      `branch create "${branchType}" "${parsed.work_id}"`,
+      "mode code",
+    ]);
+
+    // G9: Collect warnings from failed commands
+    const warnings = [...beadsResults, ...batchResults].filter((r) => !r.ok);
+
+    // OMC state: pipeline complete
+    writeOmcState({ active: false, current_phase: "plan-bridge:complete", completed_at: new Date().toISOString() });
 
     // Step 9: Output additionalContext with pipeline trigger
-    console.log(JSON.stringify(buildBridgeOutput(parsed, { success: true })));
+    console.log(JSON.stringify(buildBridgeOutput(parsed, { success: true }, warnings)));
   } catch {
     // Never block tool execution
     console.log(JSON.stringify({ continue: true }));
