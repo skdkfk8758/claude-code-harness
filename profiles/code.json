@@ -2,8 +2,18 @@
   "mode": "code",
   "description": "Coding mode - implementation and development",
   "capabilities": {
-    "primary": ["omc", "superpowers"],
+    "primary": ["superpowers"],
     "secondary": [],
     "fallback": []
-  }
+  },
+  "recommended_skills": [
+    "cch-commit",
+    "cch-verify",
+    "cch-review",
+    "cch-pr",
+    "cch-todo",
+    "superpowers:test-driven-development",
+    "superpowers:verification-before-completion",
+    "superpowers:systematic-debugging"
+  ]
 }

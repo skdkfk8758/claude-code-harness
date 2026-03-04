@@ -1,5 +1,17 @@
 {
   "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/check-env.mjs\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
     "UserPromptSubmit": [
       {
         "matcher": "*",
@@ -18,16 +30,6 @@
       }
     ],
     "PreToolUse": [
-      {
-        "matcher": "ExitPlanMode",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/plan-doc-reminder.sh\"",
-            "timeout": 2
-          }
-        ]
-      },
       {
         "matcher": "TaskCreate",
         "hooks": [
@@ -49,18 +51,6 @@
         ]
       }
     ],
-    "Stop": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/summary-writer.mjs\"",
-            "timeout": 2
-          }
-        ]
-      }
-    ],
     "PostToolUse": [
       {
         "matcher": "ExitPlanMode",
@@ -71,14 +61,16 @@
             "timeout": 5
           }
         ]
-      },
+      }
+    ],
+    "Stop": [
       {
-        "matcher": "Bash",
+        "matcher": "*",
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/tdd-enforcer.sh\"",
-            "timeout": 5
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/summary-writer.mjs\"",
+            "timeout": 2
           }
         ]
       }

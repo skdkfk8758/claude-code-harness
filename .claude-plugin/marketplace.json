@@ -7,8 +7,8 @@
     {
       "name": "claude-code-harness",
       "source": "./",
-      "description": "Meta-orchestration plugin for Claude Code. Provides mode-based capability routing with Baseline + DOT dual-track.",
-      "version": "0.1.0"
+      "description": "Lightweight orchestration plugin for Claude Code. Tier-aware skills, Beads task tracking, and hook-based automation.",
+      "version": "0.2.0"
     }
   ]
 }

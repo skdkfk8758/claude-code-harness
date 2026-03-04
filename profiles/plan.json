@@ -5,5 +5,12 @@
     "primary": ["superpowers"],
     "secondary": [],
     "fallback": []
-  }
+  },
+  "recommended_skills": [
+    "superpowers:brainstorming",
+    "superpowers:writing-plans",
+    "cch-plan",
+    "cch-init",
+    "cch-arch-guide"
+  ]
 }

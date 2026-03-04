@@ -1,26 +1,33 @@
 {
+  "schema_version": 2,
+  "description": "CCH v2 capability manifest — single source of truth for capabilities, health rules, and error codes",
   "sources": {
     "superpowers": {
-      "type": "external",
-      "description": "Core skill library",
+      "type": "plugin",
+      "description": "Core skill library (brainstorming, writing-plans, executing-plans, etc.)",
       "required": false,
-      "severity": "degraded",
-      "fallback_impact": "quality_gate_weakened"
-    },
-    "omc": {
-      "type": "external",
-      "alias": "oh-my-claudecode",
-      "description": "Claude Code enhancement layer",
-      "required": false,
-      "severity": "degraded",
-      "fallback_impact": "code_mode_degraded"
+      "health_rule": {
+        "condition": "unavailable",
+        "health": "Degraded",
+        "reason_code": "RC_SRC_UNAVAILABLE",
+        "impact": "quality_gate_weakened"
+      }
     },
     "excalidraw": {
-      "type": "external",
+      "type": "plugin",
       "description": "Excalidraw diagram generation skill",
       "required": false,
-      "severity": "degraded",
-      "fallback_impact": "diagram_generation_unavailable"
+      "health_rule": {
+        "condition": "unavailable",
+        "health": "Degraded",
+        "reason_code": "RC_SRC_UNAVAILABLE",
+        "impact": "diagram_capability_degraded"
+      }
     }
+  },
+  "error_codes": {
+    "RC_ALL_OK": { "severity": "healthy", "description": "All checks passed" },
+    "RC_MISSING_DIR": { "severity": "blocked", "description": "Required directory missing" },
+    "RC_SRC_UNAVAILABLE": { "severity": "degraded", "description": "Source unavailable" }
   }
 }
