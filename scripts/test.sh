@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # test.sh - CCH test runner
 # Usage: ./scripts/test.sh [layer]
-# Layers: contract, agent, skill, workflow, resilience, dot_gate, all
+# Layers: contract, agent, skill, workflow, resilience, all
 
 set -euo pipefail
 
@@ -144,7 +144,7 @@ run_node_tests() {
 layer="${1:-all}"
 
 if [[ "$layer" == "all" ]]; then
-  for l in contract agent skill workflow resilience dot_gate branch source_types vendor_integration cch_init gptaku_skills ruflo_skills arch_tdd beads; do
+  for l in contract agent skill workflow resilience branch source_types vendor_integration cch_init arch_tdd beads; do
     run_layer "$l"
   done
   run_node_tests

@@ -52,24 +52,6 @@ detect_intent() {
     echo "plan"; return
   fi
 
-  # swarm 모드: 병렬/대규모 처리 의도
-  local swarm_score=0
-  echo "$prompt" | grep -qiE '스웜|swarm|멀티에이전트|multi.?agent' && swarm_score=$((swarm_score+2))
-  echo "$prompt" | grep -qiE '병렬|parallel|concurrent|동시' && swarm_score=$((swarm_score+1)) || true
-  echo "$prompt" | grep -qiE '대규모|large.?scale|분산|distributed' && swarm_score=$((swarm_score+1)) || true
-  if [ $swarm_score -ge 2 ]; then
-    echo "swarm"; return
-  fi
-
-  # tool 모드: 외부 도구/통합 의도
-  local tool_score=0
-  echo "$prompt" | grep -qiE 'MCP|gptaku|외부\s*API|external\s*API' && tool_score=$((tool_score+2))
-  echo "$prompt" | grep -qiE '도구|tool|통합|integration' && tool_score=$((tool_score+1)) || true
-  echo "$prompt" | grep -qiE '연동|플러그인|plugin|외부|external' && tool_score=$((tool_score+1)) || true
-  if [ $tool_score -ge 2 ]; then
-    echo "tool"; return
-  fi
-
   echo ""
 }
 

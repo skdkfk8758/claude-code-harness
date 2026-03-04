@@ -214,43 +214,6 @@ scan-result.json의 `tech_stack`을 기반으로 4개 모드 프로필을 생성
 }
 ```
 
-### `profiles/tool.json` — 도구 모드
-
-CLI/자동화 중심. `capabilities`에 `cli` 또는 `automation`이 있으면 Bash를 primary로:
-
-```json
-{
-  "mode": "tool",
-  "description": "도구 모드 — CLI 및 자동화 중심",
-  "allowed_tools": ["Bash", "Read", "Glob", "Grep", "Write"],
-  "primary_sources": ["local"],
-  "secondary_sources": [],
-  "agent_budget": {
-    "max_tokens": 6000,
-    "max_turns": 15
-  }
-}
-```
-
-### `profiles/swarm.json` — 스웜 모드
-
-다중 에이전트 중심. `capabilities`에 `multi_agent` 또는 `parallel`이 있으면 agent_budget을 상향:
-
-```json
-{
-  "mode": "swarm",
-  "description": "스웜 모드 — 다중 에이전트 병렬 실행 중심",
-  "allowed_tools": ["Read", "Write", "Bash", "Glob", "Grep"],
-  "primary_sources": ["local"],
-  "secondary_sources": [],
-  "agent_budget": {
-    "max_tokens": 20000,
-    "max_turns": 50,
-    "max_parallel_agents": 4
-  }
-}
-```
-
 ## Step 4: Roadmap → TODO 분해
 
 `Roadmap.md`가 프로젝트 루트에 존재하는 경우 실행한다. 없으면 스킵하고 사용자에게 안내.
@@ -282,8 +245,6 @@ CLI/자동화 중심. `capabilities`에 `cli` 또는 `automation`이 있으면 B
 | manifests/health-rules.json | 헬스 체크 규칙 |
 | profiles/plan.json | 계획 모드 프로필 |
 | profiles/code.json | 코딩 모드 프로필 |
-| profiles/tool.json | 도구 모드 프로필 |
-| profiles/swarm.json | 스웜 모드 프로필 |
 | .beads/ | Roadmap 분해 → Beads 항목 생성 (또는 스킵) |
 
 ### 프로젝트 특성 반영 내역

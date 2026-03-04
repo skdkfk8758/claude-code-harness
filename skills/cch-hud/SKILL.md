@@ -26,10 +26,9 @@ CCH 프레임워크 통합 HUD 상태 확인 및 설정을 관리합니다.
 settings.json (statusLine.command)
     → cch-hud.mjs (진입점)
         ├─ CCH State Layer (.claude/cch/*)
-        │   ├─ mode (plan/code/tool/swarm)
+        │   ├─ mode (plan/code)
         │   ├─ health (Healthy/Degraded/Blocked)
-        │   ├─ .beads/ (Beads SSOT)
-        │   └─ dot_enabled (DOT 실험 상태)
+        │   └─ .beads/ (Beads SSOT)
         │
         ├─ Token Usage Layer (OMC usage-api)
         │   ├─ 5h: 5시간 롤링 윈도우 사용량 (바 차트)
@@ -68,7 +67,6 @@ settings.json (statusLine.command)
 | showMode | on/off |
 | showHealth | on/off |
 | showWorkItem | on/off |
-| showDot | on/off |
 | showPhase | on/off |
 | showTokenUsage | on/off |
 | chainOmcHud | on/off |
@@ -91,7 +89,6 @@ settings.json (statusLine.command)
 | `showMode` | CCH 모드 표시 (plan/code/tool/swarm) | on |
 | `showHealth` | 헬스 상태 표시 | on |
 | `showBead` | 활성 bead 표시 | on |
-| `showDot` | DOT 실험 상태 표시 | on |
 | `showPhase` | Phase 진행률 표시 | off |
 | `showTokenUsage` | 5h/주간 토큰 사용량 바 차트 | on |
 | `chainOmcHud` | OMC HUD 체이닝 | on |
@@ -110,7 +107,6 @@ settings.json (statusLine.command)
   "showMode": true,
   "showHealth": true,
   "showWorkItem": true,
-  "showDot": true,
   "showPhase": false,
   "showTokenUsage": true,
   "chainOmcHud": true,
@@ -136,13 +132,9 @@ settings.json (statusLine.command)
 |------|------|
 | mode=code | cyan |
 | mode=plan | magenta |
-| mode=tool | yellow |
-| mode=swarm | green |
 | Healthy | green |
 | Degraded | yellow |
 | Blocked | red |
-| DOT:on | green |
-| DOT:off | dim |
 | 토큰 0-69% | green |
 | 토큰 70-89% | yellow |
 | 토큰 90%+ | red |

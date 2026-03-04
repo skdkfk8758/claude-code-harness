@@ -11,9 +11,9 @@ argument-hint: <project description>
 End-to-end 프로젝트 파이프라인: PRD 인터뷰 → 팀 빌드 → 병렬 구현 → 합의 검증 → 최종 산출물.
 
 4가지 페인포인트를 한 번에 해결합니다:
-- 병렬 작업 실행 (pumasi)
+- 병렬 작업 실행
 - 기획→개발 브릿지 (PRD → plan-bridge)
-- 품질 검증 루프 (hive consensus)
+- 품질 검증 루프 (consensus review)
 - 팀 협업 시뮬레이션 (team builder)
 
 ## Guidelines
@@ -29,13 +29,12 @@ End-to-end 프로젝트 파이프라인: PRD 인터뷰 → 팀 빌드 → 병렬
 ## Prerequisites
 
 1. Find the plugin root by searching for `bin/cch` executable.
-2. Run: `bash "<plugin-root>/bin/cch" sources ensure gptaku_plugins`
-3. Run: `bash "<plugin-root>/bin/cch" sources ensure ruflo`
-4. If either fails, report error and stop. Both vendors are required for the full pipeline.
+2. Verify omc plugin is available (recommended for parallel agent execution).
+3. If omc is not available, pipeline will run in sequential mode.
 
 ## Steps
 
-### Phase 1 — PRD Generation (cch-gp-prd logic)
+### Phase 1 — PRD Generation
 
 1. Accept the user's project description (argument or AskUserQuestion if not provided).
 2. Conduct an iterative interview via AskUserQuestion:
@@ -51,7 +50,7 @@ End-to-end 프로젝트 파이프라인: PRD 인터뷰 → 팀 빌드 → 병렬
 4. Save all documents to `docs/plans/<date>-<project-slug>/`.
 5. Create a TaskCreate entry: "[Pipeline] PRD Complete".
 
-### Phase 2 — Team Building (cch-gp-team logic)
+### Phase 2 — Team Building
 
 1. Analyze the generated PRD to determine required roles and agent types.
 2. Map roles to models:
@@ -61,7 +60,7 @@ End-to-end 프로젝트 파이프라인: PRD 인터뷰 → 팀 빌드 → 병렬
 3. Create TaskCreate entries for each team member's assignment.
 4. Report team composition to the user before proceeding.
 
-### Phase 3 — Parallel Implementation (cch-gp-pumasi logic)
+### Phase 3 — Parallel Implementation
 
 1. Use Agent(architect) to decompose the Technical Spec into parallel work units.
 2. Create TaskCreate entries for each work unit with dependencies.
@@ -74,7 +73,7 @@ End-to-end 프로젝트 파이프라인: PRD 인터뷰 → 팀 빌드 → 병렬
 5. Merge worker outputs and resolve any integration conflicts.
 6. Update TaskUpdate entries for completed work units.
 
-### Phase 4 — Consensus Verification (cch-rf-hive logic)
+### Phase 4 — Consensus Verification
 
 1. Spawn 3 independent review agents in parallel using the Agent tool:
    - Agent 1: Correctness review (does the implementation match the spec?)

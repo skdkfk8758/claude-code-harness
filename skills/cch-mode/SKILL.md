@@ -1,7 +1,7 @@
 ---
 name: cch-mode
-description: Switch CCH operating mode. Available modes are plan, code, tool, and swarm.
-argument-hint: <plan|code|tool|swarm>
+description: Switch CCH operating mode. Available modes are plan and code.
+argument-hint: <plan|code>
 user-invocable: true
 allowed-tools: Bash, Read, Glob
 ---
@@ -19,9 +19,7 @@ bash "<plugin-root>/bin/cch" mode $ARGUMENTS
 ```
 
 Mode reference:
-- **plan**: Architecture design and task breakdown (ruflo + superpowers)
-- **code**: Implementation and development (omc + superpowers, DOT eligible)
-- **tool**: External tool integration (gptaku_plugins)
-- **swarm**: Multi-agent coordination (ruflo)
+- **plan**: Architecture design and task breakdown (superpowers)
+- **code**: Implementation and development (omc + superpowers)
 
 If no argument is provided, display the current mode. Report the result to the user.

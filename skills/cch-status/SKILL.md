@@ -1,6 +1,6 @@
 ---
 name: cch-status
-description: Show CCH health status including current mode, health state, fallback causes, and DOT experiment status.
+description: Show CCH health status including current mode, health state, and fallback causes.
 user-invocable: true
 allowed-tools: Bash, Read, Glob
 ---
@@ -21,5 +21,4 @@ bash "<plugin-root>/bin/cch" doctor --summary
    - Current mode
    - Health status (Healthy / Degraded / Blocked)
    - Fallback causes (if any)
-   - DOT experiment status
    - Current branch and linked bead (if branch module loaded)

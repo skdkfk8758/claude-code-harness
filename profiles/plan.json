@@ -2,11 +2,8 @@
   "mode": "plan",
   "description": "Planning mode - architecture design and task breakdown",
   "capabilities": {
-    "primary": ["ruflo", "superpowers"],
-    "secondary": ["gptaku_plugins"],
+    "primary": ["superpowers"],
+    "secondary": [],
     "fallback": []
-  },
-  "dot": {
-    "eligible": false
   }
 }
