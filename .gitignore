@@ -18,6 +18,7 @@ overlays/ruflo/
 
 # Dev tools
 .serena/
+.claude/skills/
 
 # Build output
 dist/
