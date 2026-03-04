@@ -74,11 +74,9 @@ try {
   } else if (toolName === "TaskUpdate") {
     const status = ti.status || "";
     const activeForm = ti.activeForm || "";
+    // in_progress without activeForm: action stays null (keep existing)
     if (status === "in_progress" && activeForm) {
       action = { type: "progress", text: activeForm };
-    } else if (status === "in_progress") {
-      // in_progress without activeForm — keep existing
-      action = null;
     } else if (status === "completed") {
       action = { type: "completed" };
     }

@@ -70,9 +70,7 @@ function appendToNotepad(cwd, summaryText) {
   const entry = `\n- [${timestamp}] ${summaryText}`;
 
   try {
-    if (!existsSync(join(cwd, ".omc"))) {
-      mkdirSync(join(cwd, ".omc"), { recursive: true });
-    }
+    mkdirSync(join(cwd, ".omc"), { recursive: true });
 
     if (!existsSync(notepadPath)) {
       writeFileSync(notepadPath, `# Notepad\n\n## Working Memory\n${entry}\n`, "utf8");
@@ -99,13 +97,11 @@ function appendToNotepad(cwd, summaryText) {
 /** Summarize the user's question */
 function summarizeQuestion(text) {
   if (!text) return "";
-  // Strip markdown
-  let clean = text
+  return text
     .replace(/^#{1,6}\s+/, "")
     .replace(/\*\*/g, "")
     .replace(/`([^`]*)`/g, "$1")
     .trim();
-  return clean;
 }
 
 try {
@@ -125,11 +121,12 @@ try {
   const assistantMsg = input.last_assistant_message || "";
 
   // Read saved question: per-session first, then global fallback
-  const question = existsSync(QUESTION_FILE)
-    ? readFileSync(QUESTION_FILE, "utf8").trim()
-    : existsSync(GLOBAL_QUESTION_FILE)
-      ? readFileSync(GLOBAL_QUESTION_FILE, "utf8").trim()
-      : "";
+  let question = "";
+  if (existsSync(QUESTION_FILE)) {
+    question = readFileSync(QUESTION_FILE, "utf8").trim();
+  } else if (existsSync(GLOBAL_QUESTION_FILE)) {
+    question = readFileSync(GLOBAL_QUESTION_FILE, "utf8").trim();
+  }
 
   if (!question && !assistantMsg) {
     process.exit(0);

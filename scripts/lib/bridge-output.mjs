@@ -66,11 +66,6 @@ export function buildBridgeOutput(plan, status, warnings = []) {
     `- 완료 기준: ${plan.acceptance_criteria.length}개`,
   ];
 
-  // Beads dual-write: show bead_id if available
-  if (plan.bead_id) {
-    lines.push(`- Beads: ${plan.bead_id}`);
-  }
-
   // G9: Append warnings from failed batch commands
   if (warnings.length > 0) {
     lines.push("", "[CCH BRIDGE WARNINGS]");

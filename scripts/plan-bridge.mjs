@@ -77,13 +77,17 @@ function findTodayPlan() {
  * G8: Infer branch type from plan filename via substring matching.
  * Default: "feat"
  */
+const BRANCH_TYPE_PATTERNS = [
+  [/-(bug)?fix|-hotfix/, "fix"],
+  [/-refactor/, "refactor"],
+  [/-docs/, "docs"],
+  [/-chore/, "chore"],
+];
+
 function inferBranchType(planFilename) {
   const name = planFilename.toLowerCase();
-  if (name.includes("-fix") || name.includes("-bugfix") || name.includes("-hotfix")) return "fix";
-  if (name.includes("-refactor")) return "refactor";
-  if (name.includes("-docs")) return "docs";
-  if (name.includes("-chore")) return "chore";
-  return "feat";
+  const match = BRANCH_TYPE_PATTERNS.find(([pattern]) => pattern.test(name));
+  return match ? match[1] : "feat";
 }
 
 /**
