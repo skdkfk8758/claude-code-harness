@@ -113,38 +113,22 @@ _calculate_tier() {
 
 # --- Cleanup (LW: replaces full GC Engine) ---
 
+_cleanup_dir() {
+  local dir="$1" pattern="$2" age_flag="$3" age_val="$4"
+  [[ -d "$dir" ]] || return 0
+  local count
+  count=$(find "$dir" -name "$pattern" "$age_flag" "$age_val" 2>/dev/null | wc -l | tr -d ' ')
+  if [[ "$count" -gt 0 ]]; then
+    find "$dir" -name "$pattern" "$age_flag" "$age_val" -delete 2>/dev/null
+  fi
+  echo "$count"
+}
+
 _cleanup_stale_files() {
   local cleaned=0
-
-  # Remove old session logs (>7 days)
-  if [[ -d "$CCH_STATE_DIR/sessions" ]]; then
-    local count
-    count=$(find "$CCH_STATE_DIR/sessions" -name '*.json' -mtime +7 2>/dev/null | wc -l | tr -d ' ')
-    if [[ "$count" -gt 0 ]]; then
-      find "$CCH_STATE_DIR/sessions" -name '*.json' -mtime +7 -delete 2>/dev/null
-      cleaned=$((cleaned + count))
-    fi
-  fi
-
-  # Remove old run logs (>7 days)
-  if [[ -d "$CCH_STATE_DIR/runs" ]]; then
-    local count
-    count=$(find "$CCH_STATE_DIR/runs" -name '*.jsonl' -mtime +7 2>/dev/null | wc -l | tr -d ' ')
-    if [[ "$count" -gt 0 ]]; then
-      find "$CCH_STATE_DIR/runs" -name '*.jsonl' -mtime +7 -delete 2>/dev/null
-      cleaned=$((cleaned + count))
-    fi
-  fi
-
-  # Remove stale lock files (>1 hour)
-  if [[ -d "$CCH_STATE_DIR/locks" ]]; then
-    local count
-    count=$(find "$CCH_STATE_DIR/locks" -name '*.lock' -mmin +60 2>/dev/null | wc -l | tr -d ' ')
-    if [[ "$count" -gt 0 ]]; then
-      find "$CCH_STATE_DIR/locks" -name '*.lock' -mmin +60 -delete 2>/dev/null
-      cleaned=$((cleaned + count))
-    fi
-  fi
+  cleaned=$((cleaned + $(_cleanup_dir "$CCH_STATE_DIR/sessions" '*.json'  -mtime +7)))
+  cleaned=$((cleaned + $(_cleanup_dir "$CCH_STATE_DIR/runs"     '*.jsonl' -mtime +7)))
+  cleaned=$((cleaned + $(_cleanup_dir "$CCH_STATE_DIR/locks"    '*.lock'  -mmin  +60)))
 
   if [[ "$cleaned" -gt 0 ]]; then
     echo "[cch] Cleaned $cleaned stale files"
@@ -251,18 +235,13 @@ cmd_mode() {
   fi
 
   # Validate mode
-  local valid=false
-  for m in "${valid_modes[@]}"; do
-    if [[ "$target_mode" == "$m" ]]; then
-      valid=true
-      break
-    fi
-  done
-
-  if [[ "$valid" == "false" ]]; then
-    echo "[cch] ERROR: Invalid mode '$target_mode'. Valid: ${valid_modes[*]}"
-    return 1
-  fi
+  case "$target_mode" in
+    plan|code) ;;
+    *)
+      echo "[cch] ERROR: Invalid mode '$target_mode'. Valid: ${valid_modes[*]}"
+      return 1
+      ;;
+  esac
 
   # Check profile exists
   if [[ ! -f "$CCH_ROOT/profiles/$target_mode.json" ]]; then

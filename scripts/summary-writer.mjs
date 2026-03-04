@@ -112,11 +112,8 @@ try {
   }
 
   if (summary) {
-    // Write to per-session directory
     mkdirSync(SESSION_DIR, { recursive: true });
     writeFileSync(SUMMARY_FILE, summary, "utf8");
-    // Also write to global fallback location
-    mkdirSync(STATE_DIR, { recursive: true });
     writeFileSync(GLOBAL_SUMMARY_FILE, summary, "utf8");
   }
 } catch {
