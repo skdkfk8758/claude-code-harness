@@ -85,15 +85,20 @@ read_health_reasons() {
 
 # --- Tier System ---
 # Tier 0: CCH core only (no plugins)
-# Tier 1: CCH + superpowers
-# Tier 2: CCH + superpowers + extensions (MCP, etc.)
+# Tier 1: CCH + any plugin (superpowers, gptaku, etc.)
+# Tier 2: CCH + any plugin + extensions (MCP, etc.)
 
 _calculate_tier() {
   local tier=0
 
-  # Check superpowers plugin
-  if [[ -d "$HOME/.claude/plugins/cache/superpowers-marketplace" ]]; then
-    tier=1
+  # Check any installed plugin (generic detection)
+  local cache_dir="$HOME/.claude/plugins/cache"
+  if [[ -d "$cache_dir" ]]; then
+    local plugin_count
+    plugin_count=$(find "$cache_dir" -mindepth 2 -maxdepth 2 -type d 2>/dev/null | wc -l | tr -d ' ')
+    if [[ "$plugin_count" -gt 0 ]]; then
+      tier=1
+    fi
   fi
 
   # Check additional extensions (MCP servers, etc.)
