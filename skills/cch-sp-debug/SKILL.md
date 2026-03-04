@@ -56,6 +56,6 @@ If 3+ fixes have failed, question the architecture rather than attempting fix #4
 
 **Pairs with:** `cch-sp-tdd` — for creating the failing test case in Phase 4.
 
-**Pairs with:** `cch-sp-verify` — verify the fix before claiming completion.
+**Pairs with:** `cch-verify` — verify the fix before claiming completion.
 
 **Source skill:** `superpowers:systematic-debugging` at `.claude/cch/sources/superpowers/skills/systematic-debugging/SKILL.md`

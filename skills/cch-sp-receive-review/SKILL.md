@@ -63,6 +63,6 @@ Push back when:
 
 ## Integration
 
-**Pairs with:** `cch-sp-code-review` — the requesting skill dispatches the reviewer that generates the feedback.
+**Pairs with:** `cch-review` — the requesting skill dispatches the reviewer that generates the feedback.
 
 **Source skill:** `superpowers:receiving-code-review` at `.claude/cch/sources/superpowers/skills/receiving-code-review/SKILL.md`
