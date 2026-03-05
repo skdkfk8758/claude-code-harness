@@ -1,0 +1,10 @@
+# Exclude large binary/runtime files from git
+*.db
+*.db-shm
+*.db-wal
+*.log
+*.pid
+*.lock
+*.sock
+last-touched
+issues.jsonl

@@ -1,0 +1,45 @@
+{
+  "version": 2,
+  "plugins": {
+    "claude-code-harness@claude-code-harness-marketplace": [
+      {
+        "scope": "user",
+        "installPath": "/Users/carpdm/.claude/plugins/cache/claude-code-harness-marketplace/claude-code-harness/0.1.0",
+        "version": "0.1.0",
+        "installedAt": "2026-03-03T01:49:48.902Z",
+        "lastUpdated": "2026-03-03T01:49:48.902Z"
+      }
+    ],
+    "superpowers@superpowers-marketplace": [
+      {
+        "scope": "user",
+        "installPath": "/Users/carpdm/.claude/plugins/cache/superpowers-marketplace/superpowers/4.3.1",
+        "version": "4.3.1",
+        "installedAt": "2026-03-03T06:54:20.766Z",
+        "lastUpdated": "2026-03-03T06:54:20.766Z",
+        "gitCommitSha": "e4a2375cb705ca5800f0833528ce36a3faf9017a"
+      }
+    ],
+    "kkirikkiri@gptaku-plugins": [
+      {
+        "scope": "user",
+        "installPath": "/Users/carpdm/.claude/plugins/cache/gptaku-plugins/kkirikkiri/0.8.0",
+        "version": "0.8.0",
+        "installedAt": "2026-03-04T05:05:05.637Z",
+        "lastUpdated": "2026-03-04T05:05:05.637Z",
+        "gitCommitSha": "672630796ca2982da9c7bb556fc16c041eefaf87"
+      }
+    ],
+    "skillers-suda@gptaku-plugins": [
+      {
+        "scope": "project",
+        "installPath": "/Users/carpdm/.claude/plugins/cache/gptaku-plugins/skillers-suda/0.3.0",
+        "version": "0.3.0",
+        "installedAt": "2026-03-05T11:30:59.177Z",
+        "lastUpdated": "2026-03-05T11:30:59.177Z",
+        "gitCommitSha": "f0be561061fb439d743f63b511d179b84fea5544",
+        "projectPath": "/Users/carpdm/Workspace/Github/claude-code-harness"
+      }
+    ]
+  }
+}

@@ -1,0 +1,80 @@
+{
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(node:*)",
+      "Bash(npm view:*)",
+      "Bash(test:*)",
+      "mcp__serena__get_symbols_overview",
+      "Bash(tree:*)",
+      "mcp__serena__list_dir",
+      "mcp__serena__find_symbol",
+      "mcp__serena__find_referencing_symbols",
+      "Bash(pnpm typecheck:*)",
+      "Bash(pnpm build:*)",
+      "Bash(pnpm test:web:*)",
+      "Bash(python3:*)",
+      "mcp__plugin_oh-my-claudecode_t__lsp_diagnostics",
+      "mcp__plugin_oh-my-claudecode_t__ast_grep_search",
+      "Bash(python:*)",
+      "Bash(bash:*)",
+      "WebSearch",
+      "Bash(claude plugins:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(curl:*)",
+      "mcp__bigquery__list_dataset_ids",
+      "mcp__bigquery__list_table_ids",
+      "mcp__bigquery__get_table_info",
+      "mcp__bigquery__execute_sql",
+      "Bash(git clone:*)",
+      "mcp__plugin_oh-my-claudecode_t__state_list_active",
+      "mcp__plugin_oh-my-claudecode_t__state_clear",
+      "Skill(claude-code-harness:cch-dot)",
+      "Bash(pnpm test:*)",
+      "Bash(npx vitest:*)",
+      "Bash(npx tsc:*)",
+      "Bash(pnpm:*)",
+      "Bash(git stash:*)",
+      "mcp__serena__search_for_pattern",
+      "Bash(git:*)",
+      "Bash(pip3 list:*)",
+      "mcp__serena__replace_symbol_body",
+      "mcp__bigquery__search_catalog",
+      "Bash(grep:*)",
+      "Bash(ls:*)",
+      "mcp__serena__find_file",
+      "Bash(lsof:*)",
+      "Bash(kill:*)",
+      "Bash(find:*)",
+      "Skill(cch-plan)",
+      "mcp__serena__read_memory",
+      "Bash(npx eslint:*)",
+      "mcp__serena__insert_after_symbol",
+      "Skill(cch-todo)",
+      "Bash(/tmp/search_summary.txt:*)"
+    ],
+    "defaultMode": "dontAsk"
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "node /Users/carpdm/.claude/hud/cch-hud.mjs",
+    "padding": 0
+  },
+  "enabledPlugins": {
+    "claude-code-harness@claude-code-harness-marketplace": true,
+    "superpowers@superpowers-marketplace": true,
+    "kkirikkiri@gptaku-plugins": true
+  },
+  "extraKnownMarketplaces": {
+    "superpowers-marketplace": {
+      "source": {
+        "source": "github",
+        "repo": "obra/superpowers-marketplace"
+      }
+    }
+  },
+  "language": "korean",
+  "skipDangerousModePermissionPrompt": true
+}
