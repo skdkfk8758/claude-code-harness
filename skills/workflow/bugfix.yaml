@@ -34,8 +34,14 @@ steps:
   - id: review
     type: agent
     agent: code-architecture-reviewer
-    description: 수정 사항 리뷰 — 근본원인 해결 확인, 사이드이펙트 체크
+    description: |
+      수정 사항 리뷰 — 근본원인 해결 확인, 사이드이펙트 체크
+      검증 드리프트 탐지 포함
     auto: true
+    retry-on-fail:
+      fix-agent: code-refactor-master
+      max-retries: 2
+      trigger-status: "NEEDS_CHANGES"
 
   - id: completion
     type: skill

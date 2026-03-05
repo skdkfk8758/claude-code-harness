@@ -40,6 +40,14 @@ You will be given context about the full implementation. Review all changes via 
 - No test pollution between suites
 - Edge cases from the plan are tested
 
+### 6. Verification Drift
+- Collect changed files: `git diff main..HEAD --name-only`
+- Detect project's test file patterns (*.test.*, *.spec.*, test_*, etc.)
+- For each changed source file, check if a corresponding test file exists
+- For new modules/functions, verify test coverage exists
+- For changed interfaces (function signatures, API endpoints, types), verify existing tests still reflect them
+- Check CI/lint/build configs include new files and directories
+
 ## Output
 
 Save to `docs/plans/{date}-{name}-review.md`:
@@ -47,24 +55,34 @@ Save to `docs/plans/{date}-{name}-review.md`:
 ```markdown
 # Code Review Report
 
-## Overall: PASS / PASS WITH NOTES / NEEDS CHANGES
+## Verdict: PASS | PASS_WITH_NOTES | NEEDS_CHANGES
 
 ## Executive Summary
 (2-3 sentences on overall quality)
 
-## Findings
-| # | File | Severity | Issue | Suggestion |
-|---|------|----------|-------|------------|
+## Blocking Issues (must fix before completion)
+| # | File | Issue | Fix Required |
+|---|------|-------|-------------|
+
+## Advisory Notes (non-blocking improvements)
+| # | File | Suggestion |
+|---|------|-----------|
 
 ## Architecture Assessment
 (Does the implementation match the planned architecture?)
 
+## Verification Drift Assessment
+| Changed File | Corresponding Test | Status |
+|-------------|-------------------|--------|
+
 ## Positive Observations
 (What was done well — be specific)
-
-## Recommendations
-(If PASS WITH NOTES, list non-blocking improvements)
 ```
+
+**Verdict criteria:**
+- `PASS` — 0 blocking, 0-2 advisory
+- `PASS_WITH_NOTES` — 0 blocking, 3+ advisory
+- `NEEDS_CHANGES` — 1+ blocking
 
 ## Rules
 - Review actual changes (`git diff`), not the entire codebase

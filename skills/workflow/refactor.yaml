@@ -50,8 +50,15 @@ steps:
   - id: review
     type: agent
     agent: code-architecture-reviewer
-    description: 리팩토링 결과 아키텍처 리뷰 — 구조 개선 확인, 회귀 체크
+    description: |
+      리팩토링 결과 아키텍처 리뷰 — 구조 개선 확인, 회귀 체크
+      검증 드리프트 탐지 포함
+    output: docs/plans/{date}-{name}-review.md
     auto: true
+    retry-on-fail:
+      fix-agent: code-refactor-master
+      max-retries: 2
+      trigger-status: "NEEDS_CHANGES"
 
   - id: documentation
     type: agent

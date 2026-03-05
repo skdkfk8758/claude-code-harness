@@ -48,9 +48,15 @@ steps:
   - id: review
     type: agent
     agent: code-architecture-reviewer
-    description: 전체 구현 변경점 아키텍처 리뷰, 리뷰 리포트 생성
+    description: |
+      전체 구현 변경점 아키텍처 리뷰, 리뷰 리포트 생성
+      검증 드리프트 탐지 포함 — 테스트 커버리지 갭, 설정 누락 체크
     output: docs/plans/{date}-{name}-review.md
     auto: true
+    retry-on-fail:
+      fix-agent: code-refactor-master
+      max-retries: 2
+      trigger-status: "NEEDS_CHANGES"
 
   - id: documentation
     type: agent

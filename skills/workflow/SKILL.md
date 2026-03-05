@@ -103,8 +103,39 @@ When a step specifies `cross-cutting: [tdd, verification, ...]`:
 For implementation steps, after each batch of 3 tasks:
 1. Dispatch **spec-reviewer** agent with task spec + changed files
 2. If PASS → dispatch **code-quality-reviewer** agent
-3. If either FAIL → report to user, fix before proceeding
+3. If either FAIL:
+   a. Extract failing items from review output
+   b. Re-dispatch **code-refactor-master** with fix targets (scope: failing items only)
+   c. Re-run the failing reviewer (spec-reviewer or code-quality-reviewer)
+   d. Max 1 retry per reviewer per batch
+   e. If still FAIL after retry → pause, report to user
 4. Only continue to next batch when both PASS
+
+## Retry-on-Fail Handling
+
+When a step has `retry-on-fail` configured in the YAML:
+
+1. Execute the step normally
+2. Parse the agent's output for the `trigger-status` value (e.g., `NEEDS_CHANGES`)
+3. If triggered:
+   a. Extract blocking issues from the review report (only blocking items, not advisory)
+   b. Dispatch `fix-agent` with:
+      - Original task context (previous step outputs)
+      - Blocking issues as fix targets
+      - Instruction: "Fix ONLY the blocking issues listed below. Do not refactor or change anything else."
+   c. Re-dispatch the review agent to re-verify
+   d. Repeat up to `max-retries` times
+4. If still failing after max-retries → escalate to user:
+   ```
+   [workflow] Review found blocking issues after {N} fix attempts.
+   Manual intervention needed. See: {review-report-path}
+   ```
+5. Update state with retry info:
+   ```json
+   { "status": "completed", "retries": 1, "finalVerdict": "PASS_WITH_NOTES" }
+   ```
+
+Note: Steps without `retry-on-fail` behave exactly as before — no retry, escalate on failure.
 
 ## Progress Display
 
