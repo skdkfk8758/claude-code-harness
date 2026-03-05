@@ -1,7 +1,7 @@
-# CCH (Claude Code Harness) v2 — Skill & Workflow Reference
+# CCH (Claude Code Harness) v3 — Skill & Workflow Reference
 
 > 전체 스킬 카탈로그, 워크플로우, 의존성 맵 시각화 문서
-> 버전: v2.2 | 갱신일: 2026-03-04
+> 버전: v3.0 | 갱신일: 2026-03-05
 
 ---
 
@@ -48,16 +48,16 @@ graph TB
 
 ### 1.2 전체 스킬 목록
 
-| # | 스킬 | 카테고리 | 설명 | user-invocable | Enhancement |
-|---|------|---------|------|:-:|:-:|
-| 1 | `cch-setup` | Core | 환경 초기화, 경로/권한 확인, Tier 감지 | O | O |
-| 2 | `cch-plan` | Core | 설계(인터뷰) → 플래닝 → TODO 통합 워크플로우 | O | O |
-| 3 | `cch-commit` | Core | 변경사항 분석 → 논리 단위 그룹화 → Bead 트레일러 커밋 | O | O |
-| 4 | `cch-todo` | Core | Beads(SSOT) + TaskList 통합 작업 조회 | O | O |
-| 5 | `cch-verify` | Core | 테스트 실행, 출력 확인, 스펙 대비 검증 | O | O |
-| 6 | `cch-review` | Core | 코드 리뷰 체크리스트 + 서브에이전트 디스패치 | O | O |
-| 7 | `cch-status` | Core | 모드/Tier/헬스 상태 표시 | O | - |
-| 8 | `cch-pr` | Core | Beads 연동 PR 생성 + 선택적 Merge & Cleanup | O | - |
+| # | 스킬 | 카테고리 | 설명 | user-invocable |
+|---|------|---------|------|:-:|
+| 1 | `cch-setup` | Core | 환경 초기화, 경로/권한 확인, Tier 감지 | O |
+| 2 | `cch-plan` | Core | 설계(인터뷰) → 플래닝 → TODO 통합 워크플로우 | O |
+| 3 | `cch-commit` | Core | 변경사항 분석 → 논리 단위 그룹화 → Plan 트레일러 커밋 | O |
+| 4 | `cch-todo` | Core | 플랜 문서 + TaskList 통합 작업 조회 | O |
+| 5 | `cch-verify` | Core | 테스트 실행, 출력 확인, 스펙 대비 검증 | O |
+| 6 | `cch-review` | Core | 코드 리뷰 체크리스트 + 서브에이전트 디스패치 | O |
+| 7 | `cch-status` | Core | 모드/Tier/헬스 상태 표시 | O |
+| 8 | `cch-pr` | Core | 플랜 연동 PR 생성 + 선택적 Merge & Cleanup | O |
 | 9 | `cch-init` | Init | 스캔→문서→스캐폴딩 통합 파이프라인 | O | - |
 | 10 | `cch-init-scan` | Init | 메타데이터/구조/문서/git/아키텍처 스캔 | - | - |
 | 11 | `cch-init-docs` | Init | Architecture/PRD/Roadmap 문서 역산 생성 | - | - |
@@ -108,21 +108,21 @@ graph LR
     end
 
     subgraph SharedInfra["Shared Infrastructure"]
-        BEADS[("Beads<br/>.beads/issues.jsonl")]
+        PLANS[("Plan Docs<br/>docs/plans/")]
         ENGINE["bin/cch"]
         STATE[(".claude/cch/<br/>state")]
     end
 
     %% Core Flow dependencies
-    PLAN -->|"Phase 3: Beads 생성"| BEADS
+    PLAN -->|"Phase 3: TaskList 생성"| PLANS
     PLAN -.->|"다음 단계 제안"| COMMIT
-    COMMIT -->|"Bead trailer"| BEADS
+    COMMIT -->|"Plan trailer"| PLANS
     COMMIT -->|"arch level 조회"| ARCH
     COMMIT -.->|"push는 PR에서"| PR
     VERIFY -.->|"검증 후 커밋"| COMMIT
     REVIEW -.->|"리뷰 후 PR"| PR
-    PR -->|"Bead 감지/종료"| BEADS
-    TODO -->|"ready 큐 조회"| BEADS
+    PR -->|"플랜 감지"| PLANS
+    TODO -->|"태스크 조회"| PLANS
 
     %% Init Flow
     INIT -->|"Agent"| SCAN
@@ -132,8 +132,8 @@ graph LR
     SCAN -.->|"scan-result.json"| SCAFFOLD
 
     %% Agent Pipelines
-    TEAM -->|"Bead 생성/종료"| BEADS
-    FULL -->|"Bead 생성"| BEADS
+    TEAM -->|"플랜 문서 추적"| PLANS
+    FULL -->|"플랜 문서 생성"| PLANS
 
     %% Standalone to Infra
     SETUP --> ENGINE
@@ -149,7 +149,7 @@ graph LR
 
 ---
 
-## 3. Tier System & Enhancement
+## 3. Tier System
 
 ### 3.1 Tier 감지 흐름
 
@@ -157,71 +157,21 @@ graph LR
 flowchart TD
     START(["SessionStart / cch setup"]) --> SCAN["check-env.mjs<br/>환경 스캔"]
 
-    SCAN --> CHK_SP{"~/.claude/plugins/cache/<br/>superpowers-marketplace<br/>존재?"}
-    CHK_SP -->|No| TIER0["Tier 0<br/>CCH Core Only"]
-    CHK_SP -->|Yes| CHK_MCP{"~/.claude/mcp.json<br/>서버 1개 이상?"}
-    CHK_MCP -->|No| TIER1["Tier 1<br/>+ Superpowers"]
+    SCAN --> CHK_PLUGIN{"~/.claude/plugins/cache/<br/>플러그인 존재?"}
+    CHK_PLUGIN -->|No| TIER0["Tier 0<br/>CCH Core Only"]
+    CHK_PLUGIN -->|Yes| CHK_MCP{"~/.claude/mcp.json<br/>서버 1개 이상?"}
+    CHK_MCP -->|No| TIER1["Tier 1<br/>+ Plugins"]
     CHK_MCP -->|Yes| TIER2["Tier 2<br/>+ MCP Servers"]
 
     TIER0 --> WRITE["tier 상태 기록<br/>.claude/cch/tier"]
     TIER1 --> WRITE
     TIER2 --> WRITE
 
-    WRITE --> EFFECT["스킬 Enhancement 분기 결정"]
-
     style START fill:#1565C0,color:white
     style TIER0 fill:#ECEFF1,stroke:#607D8B
     style TIER1 fill:#E8F5E9,stroke:#2E7D32
     style TIER2 fill:#E3F2FD,stroke:#1565C0
 ```
-
-### 3.2 Enhancement 통합 매트릭스
-
-각 스킬이 Tier 1+에서 어떤 Superpowers를 흡수하는지:
-
-```mermaid
-graph LR
-    subgraph CCH_Skills["CCH Skills (Tier-aware)"]
-        COMMIT["cch-commit"]
-        PLAN["cch-plan"]
-        VERIFY["cch-verify"]
-        REVIEW["cch-review"]
-        SETUP["cch-setup"]
-        TODO["cch-todo"]
-    end
-
-    subgraph Superpowers["Superpowers Skills"]
-        SP_BRAIN["brainstorming"]
-        SP_WPLAN["writing-plans"]
-        SP_TDD["test-driven-development"]
-        SP_VERIFY["verification-before-completion"]
-        SP_DEBUG["systematic-debugging"]
-        SP_CREVIEW["code-reviewer"]
-        SP_RREVIEW["requesting-code-review"]
-    end
-
-    PLAN -->|"Phase 1 인라인"| SP_BRAIN
-    PLAN -->|"Phase 2 인라인"| SP_WPLAN
-    COMMIT -->|"Step 3.5 TDD"| SP_TDD
-    COMMIT -->|"Step 5 Simplify"| SP_RREVIEW
-    COMMIT -->|"커밋 전 검증"| SP_VERIFY
-    VERIFY -->|"증거 기반 검증"| SP_VERIFY
-    VERIFY -->|"Step 3 디버깅"| SP_DEBUG
-    VERIFY -->|"TDD 사이클"| SP_TDD
-    REVIEW -->|"서브에이전트 리뷰"| SP_CREVIEW
-
-    style CCH_Skills fill:#E3F2FD,stroke:#1565C0
-    style Superpowers fill:#E8F5E9,stroke:#2E7D32
-```
-
-| CCH 스킬 | Superpowers 흡수 | 강화 내용 |
-|----------|-----------------|-----------|
-| `cch-plan` | `brainstorming`, `writing-plans` | Phase 1 설계 인터뷰 + Phase 2 TDD 플랜 인라인 수행 |
-| `cch-commit` | `test-driven-development`, `requesting-code-review`, `verification-before-completion` | TDD 사전 체크, Simplify 코드 리뷰 관점, 커밋 전 검증 |
-| `cch-verify` | `verification-before-completion`, `systematic-debugging`, `test-driven-development` | 증거 기반 검증, 구조적 디버깅, TDD 사이클 지원 |
-| `cch-review` | `code-reviewer` | 서브에이전트 기반 심층 코드 분석 (실패 시 기본 체크리스트 폴백) |
-| `cch-setup` | - | Tier 1+ 시 Superpowers 스킬 목록 표시, Tier 2+ 시 MCP 서버 목록 표시 |
-| `cch-todo` | - | Tier 정보 인라인 표시, 적절한 Superpowers 스킬 추천 |
 
 ---
 
@@ -316,7 +266,7 @@ flowchart TD
         PLAN["Smart Entry<br/>(입력 분석)"]
         PLAN --> P1["Phase 1: Design<br/>인터뷰 + 설계 문서"]
         P1 --> P2["Phase 2: Plan<br/>TDD Task 분해"]
-        P2 --> P3["Phase 3: TODO Sync<br/>Beads 생성 + TaskList"]
+        P2 --> P3["Phase 3: TODO Sync<br/>TaskList 생성"]
     end
 
     P3 --> IMPL
@@ -362,8 +312,8 @@ flowchart TD
 
     subgraph PR_PHASE_BOX["Phase 6: /cch-pr"]
         PR_PHASE["PR 내용 생성"]
-        PR_PHASE --> BEAD_LINK["Bead 연동"]
-        BEAD_LINK --> GH_PR["gh pr create"]
+        PR_PHASE --> PLAN_LINK["플랜 연동"]
+        PLAN_LINK --> GH_PR["gh pr create"]
         GH_PR --> MERGE_OPT["선택: PR만 / Merge+Cleanup"]
     end
 
@@ -396,7 +346,7 @@ flowchart TD
     CHK2 -->|No| START_P1["Phase 1부터"]
 
     START_P1 --> P1["Phase 1: Design Interview"]
-    P1 --> P1_CTX["컨텍스트 탐색 (병렬)<br/>Architecture.md, PRD.md,<br/>beads list, plans/, git log"]
+    P1 --> P1_CTX["컨텍스트 탐색 (병렬)<br/>Architecture.md, PRD.md,<br/>plans/, git log"]
     P1_CTX --> P1_Q["명확화 질문<br/>(1-4회, AskUserQuestion)"]
     P1_Q --> P1_APPROACH["2-3 접근법 제안<br/>+ 추천 선택"]
     P1_APPROACH --> P1_DOC["섹션별 설계 문서 작성<br/>각 섹션 사용자 승인 (HARD-GATE)"]
@@ -411,8 +361,8 @@ flowchart TD
 
     P2_SAVE & START_P3 --> P3["Phase 3: TODO Sync (항상 실행)"]
     P3 --> P3_PARSE["### Task N: 패턴 파싱"]
-    P3_PARSE --> P3_BEADS["Beads 생성<br/>bin/cch beads create + dep"]
-    P3_BEADS --> P3_HYDRATE["Hydrate: bd ready →<br/>TaskCreate (실행 가능한 것만)"]
+    P3_PARSE --> P3_TASKS["TaskList 생성<br/>TaskCreate + addBlockedBy"]
+    P3_TASKS --> P3_REPORT["세션 작업 목록 로드"]
     P3_HYDRATE --> REPORT["완료 보고<br/>+ 실행 옵션 제안"]
 
     style START fill:#1565C0,color:white
@@ -443,7 +393,7 @@ flowchart TD
     CONFIRM --> TDD["Step 3.5: TDD Pre-Check<br/>arch level + test ratio 검증"]
 
     TDD --> EXECUTE["Step 4: 순차 커밋 실행"]
-    EXECUTE --> LOOP["각 그룹마다:<br/>git add files → git commit<br/>(Bead + Co-Authored-By trailer)"]
+    EXECUTE --> LOOP["각 그룹마다:<br/>git add files → git commit<br/>(Plan + Co-Authored-By trailer)"]
 
     LOOP --> SIMPLIFY{"Step 5: Simplify<br/>코드 파일만?"}
     SIMPLIFY -->|"비코드만/docs/chore"| SKIP_S["스킵"]
@@ -475,7 +425,7 @@ flowchart TD
 
 ## 9. cch-pr 워크플로우
 
-Beads 연결 PR 생성 + 선택적 Merge.
+플랜 연동 PR 생성 + 선택적 Merge.
 
 ```mermaid
 flowchart TD
@@ -489,17 +439,15 @@ flowchart TD
     COLLECT --> BRANCH["브랜치명"]
     COLLECT --> COMMITS["main..HEAD 커밋"]
     COLLECT --> STAT["diff stat"]
-    COLLECT --> BEADS_LIST["beads list"]
     COLLECT --> PLANS["docs/plans/*.md"]
 
-    COLLECT --> BEAD_DETECT["Step 2: Bead 감지"]
-    BEAD_DETECT --> BD1["1. branches/*.yaml"]
-    BEAD_DETECT --> BD2["2. execution-plan.json"]
-    BEAD_DETECT --> BD3["3. 커밋 Bead: trailer"]
-    BEAD_DETECT --> BD4["4. 수동 입력 (fallback)"]
+    COLLECT --> PLAN_DETECT["Step 2: 플랜 감지"]
+    PLAN_DETECT --> PD1["1. branches/*.yaml"]
+    PLAN_DETECT --> PD2["2. execution-plan.json"]
+    PLAN_DETECT --> PD3["3. 커밋 Plan: trailer"]
 
-    BD1 & BD2 & BD3 & BD4 --> GENERATE["Step 3: PR 내용 생성"]
-    GENERATE --> BODY["Summary / Beads /<br/>TODO References / Changes /<br/>Test Plan"]
+    PD1 & PD2 & PD3 --> GENERATE["Step 3: PR 내용 생성"]
+    GENERATE --> BODY["Summary / Plan /<br/>TODO References / Changes /<br/>Test Plan"]
     BODY --> APPROVE{"사용자 승인?"}
     APPROVE -->|No| REVISE["수정"]
     REVISE --> APPROVE
@@ -515,7 +463,7 @@ flowchart TD
     OPT_B --> MERGE["gh pr merge --squash"]
     MERGE --> SYNC["로컬 main 동기화"]
     SYNC --> DEL["로컬 branch 삭제"]
-    DEL --> BEAD_CLOSE["beads close"]
+    DEL --> BR_UPDATE["branch 상태 파일 업데이트"]
 
     style START fill:#1565C0,color:white
     style GH fill:#4CAF50,color:white
@@ -530,8 +478,7 @@ Dev → Test → Verify 멀티에이전트 순차 실행.
 ```mermaid
 flowchart TD
     START(["/cch-team task"]) --> SETUP["Step 0: Plan Document"]
-    SETUP --> BEAD["Bead 생성 + transition"]
-    BEAD --> PLAN_DOC["docs/plans/ 문서 생성"]
+    SETUP --> PLAN_DOC["docs/plans/ 문서 생성"]
 
     PLAN_DOC --> DEV["Step 1: Developer Agent"]
     DEV --> DEV_A["Agent: general-purpose<br/>isolation: worktree"]
@@ -553,7 +500,6 @@ flowchart TD
 
     VER_DONE --> FINAL["Step 4: Documentation"]
     FINAL --> UPDATE["Plan doc 업데이트"]
-    FINAL --> CLOSE["beads close"]
     FINAL --> REPORT(["결과 리포트"])
 
     style START fill:#1565C0,color:white
@@ -608,7 +554,7 @@ flowchart TD
         SCAFFOLD --> SC1["디렉터리 구조 생성"]
         SCAFFOLD --> SC2["매니페스트 생성"]
         SCAFFOLD --> SC3["프로필 생성"]
-        SCAFFOLD --> SC4["Beads 초기화 (선택)"]
+        SCAFFOLD --> SC4["Hook 설정"]
     end
 
     SC1 & SC2 & SC3 & SC4 --> FINAL
@@ -684,46 +630,37 @@ flowchart TD
 
 ---
 
-## 13. Beads Task Tracking
+## 13. Plan Document Task Tracking
 
-프로젝트 수준 태스크 SSOT.
+프로젝트 수준 태스크 SSOT는 플랜 문서(`docs/plans/`)이다.
 
 ```mermaid
 flowchart TD
-    subgraph CLI["bin/cch beads CLI"]
-        CREATE["bd create title<br/>--priority --labels"]
-        LIST["bd list<br/>--label key:val"]
-        SHOW["bd show id"]
-        CLOSE["bd close id"]
-        EDIT["bd edit id<br/>--label --dep"]
-        READY["bd ready<br/>--limit N"]
-        DEP["bd dep id depends-on"]
+    subgraph PlanDocs["docs/plans/ (SSOT)"]
+        DESIGN["*-design.md<br/>설계 문서"]
+        IMPL["*-impl.md<br/>구현 플랜 (Task 정의)"]
     end
 
-    subgraph Storage[".beads/issues.jsonl"]
-        JSONL["각 행 = 1 이벤트<br/>{id, action, title, labels, deps}"]
-    end
-
-    subgraph Features["핵심 기능"]
-        LABELS["라벨: phase:N, priority:P"]
-        DEPS["의존성: blocks/blockedBy"]
-        READY_Q["Ready 큐:<br/>의존 풀린 미완료 항목"]
+    subgraph SessionView["세션 실행 뷰"]
+        TASKLIST["TaskList<br/>(휘발, 세션 단위)"]
+        TASKCREATE["TaskCreate<br/>Task 생성"]
     end
 
     subgraph Consumers["소비자 스킬"]
         TODO["cch-todo — 통합 조회"]
         PLAN_S["cch-plan — Phase 3 생성"]
-        COMMIT_S["cch-commit — Bead trailer"]
+        COMMIT_S["cch-commit — Plan trailer"]
         PR_S["cch-pr — PR body 연결"]
-        TEAM_S["cch-team — 생성/종료"]
+        TEAM_S["cch-team — 파이프라인 추적"]
     end
 
-    CLI --> JSONL
-    JSONL --> Features
-    Features --> Consumers
+    IMPL -->|"Task 파싱"| TASKCREATE
+    TASKCREATE --> TASKLIST
+    TASKLIST --> Consumers
+    IMPL --> Consumers
 
-    style Storage fill:#E0F7FA,stroke:#00838F
-    style Features fill:#E8F5E9,stroke:#2E7D32
+    style PlanDocs fill:#E0F7FA,stroke:#00838F
+    style SessionView fill:#E8F5E9,stroke:#2E7D32
     style Consumers fill:#FFF3E0,stroke:#F57C00
 ```
 
@@ -819,12 +756,12 @@ graph TB
 
     subgraph State["State Layer"]
         CCH_STATE[".claude/cch/<br/>mode | health | tier<br/>branches/ | sessions/ | locks/"]
-        BEADS[".beads/issues.jsonl<br/>(Task SSOT)"]
+        PLANS_ST["docs/plans/<br/>(Task SSOT)"]
     end
 
     subgraph Tier["Tier System"]
         T0["Tier 0: Core"]
-        T1["Tier 1: + Superpowers"]
+        T1["Tier 1: + Plugins"]
         T2["Tier 2: + MCP Servers"]
     end
 
@@ -840,7 +777,7 @@ graph TB
     SCRIPTS --> CCH_STATE
 
     T0 -.-> T1 -.-> T2
-    T1 -.->|"Enhancement 활성화"| SKILLS
+    T1 -.->|"추가 기능 감지"| SKILLS
 
     style UserLayer fill:#FFF3E0,stroke:#F57C00
     style Engine fill:#E3F2FD,stroke:#1565C0
@@ -853,21 +790,20 @@ graph TB
 
 ## 17. Test Architecture
 
-8개 테스트 파일, 201+ 테스트.
+6개 테스트 레이어 + 유닛 테스트.
 
 ```mermaid
 flowchart TD
-    RUNNER["bash tests/harness.sh"] --> CLEAN["clean_state()"]
+    RUNNER["bash scripts/test.sh all"] --> CLEAN["clean_state()"]
     CLEAN --> TESTS["테스트 실행"]
 
-    TESTS --> T1["Contract (20)<br/>bin/cch 명령 계약"]
-    TESTS --> T2["Skill (52)<br/>SKILL.md frontmatter<br/>+ Enhancement 검증"]
-    TESTS --> T3["Beads (29)<br/>CRUD/전환/의존성"]
-    TESTS --> T4["Branch (35)<br/>브랜치 워크플로우"]
-    TESTS --> T5["Workflow (9)<br/>E2E 통합"]
-    TESTS --> T6["Resilience (6)<br/>복구력/결함 허용"]
-    TESTS --> T7["Integration (13)<br/>Tier/환경/capabilities"]
-    TESTS --> T8["Init (37)<br/>초기화 스킬 구조"]
+    TESTS --> T1["Contract<br/>bin/cch 명령 계약"]
+    TESTS --> T2["Skill<br/>SKILL.md frontmatter"]
+    TESTS --> T4["Branch<br/>브랜치 워크플로우"]
+    TESTS --> T5["Workflow<br/>E2E 통합"]
+    TESTS --> T6["Resilience<br/>복구력/결함 허용"]
+    TESTS --> T8["Init<br/>초기화 스킬 구조"]
+    TESTS --> T9["Node Unit<br/>Tier/환경/플랜파서"]
 
     subgraph Harness["harness.sh"]
         A1["assert_contains"]
@@ -895,7 +831,6 @@ flowchart TD
 | 파일 | 역할 |
 |------|------|
 | `bin/cch` | CLI 엔진 — 명령 파싱/디스패치, 모드 전환, Tier 감지, 마이그레이션 |
-| `bin/lib/beads.sh` | Beads CRUD/전환/의존성/조회 |
 | `bin/lib/branch.sh` | 브랜치 워크플로우 관리 |
 | `bin/lib/log.sh` | 실행 로그 기록/조회 |
 | `bin/lib/lock.sh` | 동시성 제어 (락 파일) |
@@ -931,4 +866,4 @@ flowchart TD
 | `.claude/cch/branches/` | 브랜치별 상태 (YAML) |
 | `.claude/cch/sessions/` | 세션별 상태 |
 | `.claude/cch/locks/` | 동시성 제어 |
-| `.beads/issues.jsonl` | 프로젝트 태스크 SSOT |
+| `docs/plans/` | 프로젝트 태스크 SSOT (플랜 문서) |
