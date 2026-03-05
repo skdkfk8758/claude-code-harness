@@ -7,8 +7,8 @@
     {
       "name": "claude-code-harness",
       "source": "./",
-      "description": "Lightweight orchestration plugin for Claude Code. Tier-aware skills and hook-based automation.",
-      "version": "0.2.0"
+      "description": "Workflow orchestration plugin for Claude Code. Skill gates enforce checkpoints, agents execute roles.",
+      "version": "0.3.0"
     }
   ]
 }

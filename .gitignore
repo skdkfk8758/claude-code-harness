@@ -2,17 +2,14 @@
 .DS_Store
 Thumbs.db
 
-# CCH Runtime
-.resolved/
-.claude/cch/
-.claude/settings.local.json
-
 # Dev tools
 .serena/
 .claude/skills/
+.claude/settings.local.json
 
-# Build output
+# Build / Runtime
 dist/
+node_modules/
 
 # Editor
 *.swp
@@ -21,16 +18,3 @@ dist/
 
 # Logs
 *.log
-
-# PinchTab test reports (generated)
-tests/pinchtab/reports/*
-!tests/pinchtab/reports/.gitkeep
-
-# Archive: large binaries
-archive/v2/beads/*.db*
-archive/v2/beads/daemon.*
-archive/v2/beads/issues.jsonl
-archive/v2/beads/last-touched
-
-# Node (if needed later)
-node_modules/
