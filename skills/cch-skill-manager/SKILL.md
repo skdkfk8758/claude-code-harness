@@ -32,8 +32,8 @@ bash bin/cch skill list
 
 결과를 읽기 좋은 테이블로 포맷합니다:
 
-| Name | Source | Invocable | Words | Enhancement |
-|------|--------|-----------|-------|-------------|
+| Name | Source | Invocable | Words |
+|------|--------|-----------|-------|
 
 ### info — 단일 스킬 상세
 

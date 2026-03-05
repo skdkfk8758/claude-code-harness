@@ -34,10 +34,3 @@ node "<plugin-root>/scripts/check-env.mjs" --cli
 5. On success, suggest next steps:
    - `/cch-plan` to start a design workflow
    - `/cch-todo` to view current tasks
-
-## Enhancement (Tier 1+)
-
-> superpowers 플러그인이 설치되어 있으면 다음 강화 기능을 활용합니다.
-
-- **Tier 1+**: Superpowers 스킬 목록 표시 (brainstorming, writing-plans, TDD 등)
-- **Tier 2+**: 감지된 MCP 서버 목록 및 사용 가능한 도구 표시

@@ -54,8 +54,8 @@ After all 4 documents are written, perform consistency checks:
 
 1. **Terminology**: Confirm that module names in Architecture.md match feature names in PRD.md.
 2. **Feature ↔ Module mapping**: Every core feature in PRD.md must reference at least one module in Architecture.md.
-3. **Milestone ↔ Phase mapping**: Each milestone in Roadmap.md must correspond to a Beads phase label.
-4. **Dependency alignment**: Critical-path tasks in Beads must not depend on modules absent from Architecture.md.
+3. **Milestone ↔ Phase mapping**: Each milestone in Roadmap.md must correspond to a plan document phase.
+4. **Dependency alignment**: Critical-path tasks must not depend on modules absent from Architecture.md.
 
 Report all inconsistencies found. Do not auto-fix — list them clearly so the user can decide.
 

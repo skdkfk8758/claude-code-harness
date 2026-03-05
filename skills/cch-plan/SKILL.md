@@ -69,15 +69,14 @@ ARGUMENTS를 파싱하여 시작 Phase를 결정한다.
 
 > **SKIP 조건:** `START_PHASE > 1`이면 이 Phase를 건너뛰고 Phase 2로 이동한다.
 
-`superpowers:brainstorming` 프로세스를 인라인으로 수행한다.
+구조화된 설계 인터뷰를 수행한다.
 
 ### 1-1. 프로젝트 컨텍스트 탐색
 
 다음을 **병렬로** 읽는다:
 - `docs/Architecture.md` (있는 경우)
 - `docs/PRD.md` (있는 경우)
-- `bash bin/cch beads list` — 현재 태스크 및 진행 상황 파악
-- `docs/plans/` 디렉터리 목록 — 기존 설계 문서 파악
+- `docs/plans/` 디렉터리 목록 — 기존 설계 문서 및 진행 상황 파악
 - 최근 커밋 5개: `git log --oneline -5`
 
 탐색 결과를 바탕으로 현재 프로젝트 상태와 새 기능이 미치는 영향을 파악한다.
@@ -138,7 +137,7 @@ docs/plans/YYYY-MM-DD-<topic>-design.md
 
 > **SKIP 조건:** `START_PHASE > 2`이면 이 Phase를 건너뛰고 Phase 3으로 이동한다.
 
-`superpowers:writing-plans` 프로세스를 인라인으로 수행한다.
+구조화된 구현 계획을 작성한다.
 
 ### 2-1. 입력 결정
 
@@ -222,46 +221,26 @@ docs/plans/YYYY-MM-DD-<topic>-impl.md
 구현 플랜 문서에서 `### Task N: <제목>` 패턴으로 Task 목록을 추출한다.
 각 Task의 제목, 세부 Steps, 의존성(Task M)을 파악한다.
 
-### 3-3. Beads 항목 생성 (SSOT)
+### 3-3. TaskList 생성
 
-각 Task에 대해 Bead를 생성한다:
-
-```bash
-bash bin/cch beads create "<Task 제목>" --priority 2 --labels "phase:<XX>,plan:<work-id>"
-```
-
-- 의존성이 있는 Task는 `bash bin/cch beads dep <bead-id> <depends-on-bead-id>` 로 연결
-- 생성된 bead-id를 기록하여 이후 단계에서 사용
-
-> **NOTE:** Beads가 태스크 유일한 SSOT입니다. TaskCreate에 직접 기록하지 않습니다.
-
-### 3-4. Hydrate: Beads → TaskList (세션 실행 뷰)
-
-`bd ready`로 현재 실행 가능한 Bead만 TaskList에 로드한다:
-
-```bash
-bash bin/cch beads ready --limit 10
-```
-
-결과의 각 Bead에 대해:
+각 Task에 대해 TaskCreate로 세션 작업 목록을 생성한다:
 
 ```
 TaskCreate(
-  subject: "[XX] <Bead 제목>",
-  description: "<Bead 상세 + 플랜 문서 참조>",
-  metadata: { beadId: "<bead-id>" }
+  subject: "[XX] <Task 제목>",
+  description: "<Task 상세 + 플랜 문서 경로 참조>"
 )
 ```
 
-- 의존성 매핑: Beads dep → TaskCreate addBlockedBy
-- `blocked` 상태의 Bead는 로드하지 않음 (bd ready가 자동 필터링)
+- 의존성이 있는 Task는 addBlockedBy로 연결
+- 플랜 문서(`docs/plans/*-impl.md`)가 태스크의 SSOT 역할을 한다
 
 ### 3-5. 결과 요약 출력
 
 ```
 TODO Sync 완료:
-- Beads 생성: M개 항목 (Phase XX)
-- TaskList Hydrate: N개 항목 로드 (실행 가능한 것만)
+- TaskList 생성: N개 항목 로드
+- 플랜 문서: docs/plans/<topic>-impl.md
 ```
 
 TaskList를 호출하여 현재 세션 작업 목록을 출력한다.
@@ -280,7 +259,7 @@ TaskList를 호출하여 현재 세션 작업 목록을 출력한다.
 
 - **설계 문서** (Phase 1 수행 시): `docs/plans/YYYY-MM-DD-<topic>-design.md`
 - **구현 플랜** (Phase 2 수행 시): `docs/plans/YYYY-MM-DD-<topic>-impl.md`
-- **Beads 생성**: M개 항목 (Phase XX)
+- **TaskList 생성**: N개 항목
 
 ### 다음 단계
 
@@ -288,23 +267,12 @@ TaskList를 호출하여 현재 세션 작업 목록을 출력한다.
 
 **옵션 A: Subagent-Driven (자동화)**
 ```
-superpowers:subagent-driven-development 사용
+/cch-sp-subagent-dev 사용
 — 각 Task를 서브에이전트가 순서대로 자동 실행
 ```
 
-**옵션 B: Parallel Session (수동 제어)**
+**옵션 B: Plan 실행 (수동 제어)**
 ```
-별도 세션에서 superpowers:executing-plans 사용
+/cch-sp-execute-plan 사용
 — 직접 Task를 선택하여 단계적으로 실행
 ```
-
----
-
-## Enhancement (Tier 1+)
-
-> superpowers 플러그인이 설치되어 있으면 다음 강화 기능이 자동 적용됩니다.
-
-- **Phase 1**: `superpowers:brainstorming` 프로세스를 인라인 수행 (이미 적용됨)
-- **Phase 2**: `superpowers:writing-plans` 프로세스를 인라인 수행 (이미 적용됨)
-- **Tier 1+**: Phase 1-4 각 섹션에서 `notepad_read`/`notepad_write_working`으로 컨텍스트 유지
-- **Tier 2+**: MCP 서버가 있으면 Phase 1 컨텍스트 탐색에 MCP 도구 활용

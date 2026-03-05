@@ -66,12 +66,3 @@ ARGUMENTS를 분석하여 리뷰 대상을 결정합니다:
 
 결론: APPROVED / CHANGES_REQUESTED / NEEDS_DISCUSSION
 ```
-
-## Enhancement (Tier 1+)
-
-> superpowers 플러그인이 설치되어 있으면 다음 강화 기능을 활용합니다.
-
-- **Tier 1+**: `superpowers:code-reviewer` 서브에이전트를 Step 2 대신 사용
-  - Agent 도구로 `superpowers:code-reviewer` 워크플로우를 가진 서브에이전트 디스패치
-  - 더 심층적인 코드 분석 및 패턴 검출
-  - 서브에이전트 실패 시 기본 체크리스트로 폴백

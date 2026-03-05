@@ -22,15 +22,3 @@ for skill in "${core_skills[@]}"; do
     assert_contains "skill $skill: has user-invocable" "user-invocable:" "$content"
   fi
 done
-
-# Check Enhancement section exists in Tier-aware skills
-tier_aware_skills=("cch-setup" "cch-commit" "cch-plan" "cch-todo" "cch-verify" "cch-review")
-
-for skill in "${tier_aware_skills[@]}"; do
-  skill_file="$SKILLS_DIR/$skill/SKILL.md"
-  if [[ -f "$skill_file" ]]; then
-    content="$(cat "$skill_file")"
-    assert_contains "skill $skill: has Enhancement section" "Enhancement" "$content"
-    assert_contains "skill $skill: has Tier reference" "Tier" "$content"
-  fi
-done

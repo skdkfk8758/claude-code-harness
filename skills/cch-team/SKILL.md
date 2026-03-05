@@ -17,8 +17,7 @@ allowed-tools: Agent, Bash, Read, Glob, Grep, TaskCreate, TaskUpdate, TaskList, 
 3. **`docs/plans/<work-id>.md` 파일을 생성**합니다:
    - 아래 템플릿을 사용합니다
    - 이 문서 경로를 사용자에게 명시합니다
-4. `bash bin/cch beads create "<title>" --priority 1 --labels "plan:<work-id>"` 로 bead를 생성합니다.
-5. `bash bin/cch beads transition <bead-id> doing` 으로 상태를 전환합니다.
+4. 계획 문서의 상태를 `doing`으로 업데이트합니다.
 
 #### 계획 문서 템플릿 (`docs/plans/<work-id>.md`)
 
@@ -49,7 +48,7 @@ allowed-tools: Agent, Bash, Read, Glob, Grep, TaskCreate, TaskUpdate, TaskList, 
 | Verifier | pending | — |
 
 ## Done Definition
-- [ ] Bead 닫기 (`cch beads close <bead-id> --reason "done"`)
+- [ ] 계획 문서 상태를 `done`으로 업데이트
 - [ ] 계획 문서 완료일 기록
 
 ## 완료
@@ -87,11 +86,7 @@ allowed-tools: Agent, Bash, Read, Glob, Grep, TaskCreate, TaskUpdate, TaskList, 
    - 테스트 결과 요약
    - 검증 결과 요약
    - 완료 시각
-2. **Beads 완료 처리** (필수):
-   - `.claude/cch/execution-plan.json`에서 `bead_id`를 읽습니다.
-   - `bash bin/cch beads close <bead-id> --reason "pipeline complete"` 로 bead를 닫습니다.
-   - `bead_id`가 없으면 이 단계를 건너뜁니다.
+2. 계획 문서의 상태를 `done`으로, 완료일을 기록합니다.
 3. 사용자에게 최종 보고:
    - "계획 문서: `docs/plans/<work-id>.md`"
-   - "Beads: `bash bin/cch beads show <bead-id>`"
    - 구현/테스트/검증 결과 요약

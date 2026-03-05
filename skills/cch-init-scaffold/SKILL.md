@@ -221,11 +221,8 @@ scan-result.json의 `tech_stack`을 기반으로 4개 모드 프로필을 생성
 ### 처리 절차
 
 1. `Roadmap.md`를 읽어 마일스톤 목록 추출 (## 또는 ### 헤딩 기준)
-2. 각 마일스톤을 Beads 항목으로 생성:
-   - `bd init --prefix cch` (아직 초기화되지 않은 경우)
-   - 각 마일스톤 하위 항목 → `bash bin/cch beads create "<항목>" --type task --labels "phase:<N>"`
-   - 순차적 마일스톤 → `bash bin/cch beads dep <bead-id> <depends-on-bead-id>` 의존성 추가
-3. `bd ready`로 의존성 해결된 작업 확인
+2. 각 마일스톤의 하위 항목을 체크박스 형식으로 Roadmap.md에 기록
+3. 작업 우선순위에 따라 정렬
 
 ## Output
 
@@ -245,7 +242,6 @@ scan-result.json의 `tech_stack`을 기반으로 4개 모드 프로필을 생성
 | manifests/health-rules.json | 헬스 체크 규칙 |
 | profiles/plan.json | 계획 모드 프로필 |
 | profiles/code.json | 코딩 모드 프로필 |
-| .beads/ | Roadmap 분해 → Beads 항목 생성 (또는 스킵) |
 
 ### 프로젝트 특성 반영 내역
 

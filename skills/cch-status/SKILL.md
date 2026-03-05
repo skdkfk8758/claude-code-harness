@@ -22,6 +22,6 @@ bash "<plugin-root>/bin/cch" status
    - Tier level (0/1/2)
    - Health status (Healthy / Degraded / Blocked)
    - Reason codes (if any)
-   - Current branch and linked bead (if available)
+   - Current branch (if available)
 
 4. If health is not Healthy, suggest remediation based on reason codes.

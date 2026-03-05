@@ -153,12 +153,6 @@ echo "<next-progress>" > .claude/cch/init/progress
 `.claude/cch/init/progress` 값이 `scaffold`이면 이 단계를 실행한다.
 `done` 이면 건너뛴다.
 
-**Bead 생성:**
-
-```bash
-bash bin/cch beads create "cch-init scaffold" --type task 2>/dev/null || true
-```
-
 Agent 도구로 cch-init-scaffold 스킬을 실행한다:
 
 ```
@@ -239,7 +233,6 @@ echo "done" > .claude/cch/init/progress
 | Scan | cch-init-scan 실패 | 에러 메시지 출력, 재시도 여부 AskUserQuestion |
 | Docs | cch-init-docs 실패 | 에러 메시지 출력, 부분 생성된 파일 안내 |
 | Scaffold | cch-init-scaffold 실패 | 에러 메시지 출력, 수동 조치 안내 |
-| Bead | bin/cch 없음 | 경고만 출력, 계속 진행 |
 
 Scan 또는 Docs 실패 시 AskUserQuestion:
 
