@@ -271,6 +271,29 @@
             }
         }
     },
+    "setup": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "high",
+            "description": "Plugin environment setup — HUD deploy, health check, v2 cleanup",
+            "promptTriggers": {
+                "keywords": [
+                    "setup",
+                    "설정",
+                    "초기화",
+                    "install",
+                    "설치",
+                    "initialize",
+                    "환경설정"
+                ],
+                "intentPatterns": [
+                    "(setup|설정|초기화|설치).*?(cch|plugin|플러그인|harness|환경)",
+                    "(install|설치).*?(hud|환경|plugin|플러그인)",
+                    "(first|처음).*?(time|사용|setup|설정)"
+                ]
+            }
+        }
+    },
     "notes": {
         "enforcement_types": {
             "suggest": "Skill suggestion appears but doesn't block execution",

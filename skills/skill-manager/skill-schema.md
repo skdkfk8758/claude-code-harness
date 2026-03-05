@@ -80,6 +80,7 @@ Markdown content with:
 | Cross-cutting | Rules injected into agents | tdd, verification, systematic-debugging |
 | Orchestrator | Manages workflow progression | workflow |
 | Manager | CRUD operations | workflow-manager, skill-manager |
+| Setup | Environment initialization | setup |
 
 ## Agent Roles
 

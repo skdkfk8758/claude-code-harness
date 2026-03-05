@@ -6,6 +6,7 @@ Thumbs.db
 .serena/
 .claude/skills/
 .claude/settings.local.json
+.claude/workflow-state.json
 
 # Build / Runtime
 dist/
