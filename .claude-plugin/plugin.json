@@ -1,10 +1,10 @@
 {
   "name": "claude-code-harness",
-  "version": "0.1.0",
-  "description": "Meta-orchestration plugin for Claude Code. Provides mode-based capability routing with Baseline + DOT dual-track.",
+  "version": "0.3.0",
+  "description": "Workflow orchestration plugin for Claude Code. Skill gates enforce checkpoints, agents execute roles.",
   "author": {
     "name": "carpdm"
   },
   "skills": "./skills/",
-  "hooks": "./hooks/hooks.json"
+  "agents": "./agents/"
 }

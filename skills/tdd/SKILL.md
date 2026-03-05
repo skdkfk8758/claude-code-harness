@@ -1,0 +1,134 @@
+---
+name: tdd
+description: Use when implementing any feature or bugfix, before writing implementation code. Enforces red-green-refactor cycle. No production code without a failing test first.
+user-invocable: true
+allowed-tools: Read, Write, Edit, Bash, Glob, Grep
+---
+
+# Test-Driven Development (Cross-Cutting)
+
+This skill applies to ALL implementation work. It is not optional.
+
+## The Rule
+
+**NO PRODUCTION CODE WITHOUT A FAILING TEST FIRST.**
+
+If you find yourself writing production code before a test exists, STOP. Delete the production code. Write the test first.
+
+## RED-GREEN-REFACTOR Cycle
+
+### RED: Write a failing test
+1. Write the smallest test that describes the desired behavior
+2. Run it — it MUST fail
+3. If it passes without new code, the test is wrong (testing something already implemented)
+4. The failure message should clearly describe what's missing
+
+### GREEN: Write minimal code to pass
+1. Write the MINIMUM code to make the test pass
+2. Do not write "good" code — write passing code
+3. Run the test — it MUST pass now
+4. If it still fails, fix the code (not the test)
+
+### REFACTOR: Clean up
+1. Now improve the code quality
+2. Run tests after each refactoring step — they must stay green
+3. Remove duplication, improve naming, extract abstractions
+4. Only refactor if there's a clear benefit
+
+## Anti-Patterns to Avoid
+
+| Anti-Pattern | What to do instead |
+|-------------|-------------------|
+| Writing tests after implementation | Delete impl, write test first |
+| Testing implementation details (mocking internals) | Test behavior and outcomes |
+| Test that always passes | Verify it fails without the feature |
+| Copying test code everywhere | Extract test utilities, use fixtures |
+| Testing trivial getters/setters | Test meaningful behavior |
+| One giant test per feature | Many small focused tests |
+| Ignoring/skipping failing tests | Fix or remove them |
+
+## Common Rationalizations (and why they're wrong)
+
+| Rationalization | Why it's wrong | What to do |
+|----------------|----------------|-----------|
+| "This is too simple to test" | Simple code breaks too. If it's worth writing, it's worth testing | Write the test — it'll be fast if it's truly simple |
+| "I'll write tests after" | You won't. And you'll write tests that pass, not tests that verify | Write the test NOW, before the code |
+| "The test is obvious, I'll just write the code" | The test enforces the contract. Obvious code still needs a contract | Write the obvious test first |
+| "I need to see the code shape first" | TDD shapes the code. Code-first shapes tests to match implementation | Let the test drive the design |
+| "Testing this would require too much setup" | Complex setup = poor design. Refactor to make it testable | Simplify the interface, then test |
+| "I'm just refactoring, no new tests needed" | Refactoring without tests is gambling | Ensure existing tests cover it, or add tests first |
+| "This is a prototype / spike" | Spikes explore; they don't ship. If it ships, it needs tests | Mark it explicitly as spike, rewrite with TDD for production |
+| "The type system catches this" | Types catch type errors, not logic errors | Test the behavior, not just the types |
+
+## Good vs Bad Examples
+
+### BAD: Test written after implementation
+```typescript
+// ❌ Wrote the function first, then "verified" it works
+function add(a: number, b: number) { return a + b; }
+
+// Test added after — just mirrors the implementation
+test('add works', () => {
+  expect(add(1, 2)).toBe(3);  // This tells you nothing you didn't already know
+});
+```
+
+### GOOD: Test drives the implementation
+```typescript
+// ✅ Step 1 (RED): Write the test FIRST — no add() exists yet
+test('adds two positive numbers', () => {
+  expect(add(1, 2)).toBe(3);
+});
+test('handles negative numbers', () => {
+  expect(add(-1, -2)).toBe(-3);
+});
+test('handles zero', () => {
+  expect(add(0, 5)).toBe(5);
+});
+// Run → all FAIL (add is not defined)
+
+// ✅ Step 2 (GREEN): Write minimum code to pass
+function add(a: number, b: number): number {
+  return a + b;
+}
+// Run → all PASS
+```
+
+### BAD: Testing implementation details
+```typescript
+// ❌ Tightly coupled to internal implementation
+test('uses cache map internally', () => {
+  const service = new UserService();
+  service.getUser('123');
+  expect(service['_cache'].has('123')).toBe(true);  // Breaks if cache impl changes
+});
+```
+
+### GOOD: Testing behavior
+```typescript
+// ✅ Tests observable behavior, not internals
+test('returns same user on repeated calls without extra fetch', () => {
+  const service = new UserService(mockFetcher);
+  await service.getUser('123');
+  await service.getUser('123');
+  expect(mockFetcher.callCount).toBe(1);  // Behavior: only fetches once
+});
+```
+
+## Red Flags
+
+Stop immediately if you notice:
+- Writing production code and thinking "I'll add tests in a minute"
+- A test file that was created AFTER the source file
+- Tests that only test the happy path
+- `test.skip()` or `xit()` anywhere in the codebase
+- Test names that don't describe behavior ("test1", "it works")
+
+## Integration with Workflow
+
+When executing tasks from a task plan:
+1. Each task's TDD Steps define the test to write
+2. Write exactly that test first (RED)
+3. Implement exactly what the task specifies (GREEN)
+4. Refactor only within task scope (REFACTOR)
+5. Move to next task only when current is green

@@ -1,0 +1,44 @@
+name: bugfix
+description: 버그 수정 워크플로우 — 근본원인 조사부터 검증까지
+
+steps:
+  - id: investigation
+    type: skill
+    skill: systematic-debugging
+    description: |
+      4단계 근본원인 조사:
+      1. Root Cause Investigation — 에러 메시지, 재현, 경계 분석
+      2. Pattern Analysis — 유사 버그 패턴 검색
+      3. Hypothesis Formation — 가설 수립 및 검증
+      4. Targeted Fix — 근본원인 기반 최소 수정
+    output: docs/plans/{date}-{name}-investigation.md
+    gate: user-approval
+
+  - id: planning
+    type: agent
+    agent: planner
+    description: 수정 계획 문서화 (영향 범위, 사이드이펙트, 테스트 전략)
+    output: docs/plans/{date}-{name}-plan.md
+    auto: true
+
+  - id: implementation
+    type: agent
+    agent: code-refactor-master
+    description: TDD 기반 수정 — 실패 테스트 작성 → 수정 → 통과 확인
+    input: docs/plans/{date}-{name}-plan.md
+    cross-cutting:
+      - tdd
+      - verification
+    auto: true
+
+  - id: review
+    type: agent
+    agent: code-architecture-reviewer
+    description: 수정 사항 리뷰 — 근본원인 해결 확인, 사이드이펙트 체크
+    auto: true
+
+  - id: completion
+    type: skill
+    skill: finishing-branch
+    description: 테스트 통과 확인 후 merge/PR/keep/discard 선택
+    gate: user-approval
