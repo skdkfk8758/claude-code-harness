@@ -2,13 +2,6 @@
   "showProjectName": true,
   "showGitBranch": true,
   "showWorktree": true,
-  "showMode": false,
-  "showHealth": false,
-  "showWorkItem": true,
-  "showDot": false,
-  "showLastActivity": false,
-  "showSummary": false,
-  "showPhase": true,
-  "showTokenUsage": true,
-  "cchStateDir": ".claude/cch"
+  "showWorkflow": true,
+  "showTokenUsage": true
 }

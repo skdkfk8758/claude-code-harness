@@ -1,15 +1,16 @@
 #!/usr/bin/env node
 /**
- * CCH HUD - Claude Code Harness Statusline
- * Reads CCH framework state and displays status elements.
+ * CCH HUD - Claude Code Harness Statusline (v3)
+ * Reads v3 workflow state and displays status elements.
  *
  * Output format:
- *   [CCH:code] Healthy | WI:w-p0(doing) | DOT:off
+ *   Line 1: project-name | branch | worktree
+ *   Line 2: rate-limits | context | workflow-status
  *
- * Config: ~/.claude/hud/cch-hud-config.json
+ * Config: hud/cch-hud-config.json (relative to plugin root)
  */
 
-import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, rmSync, statSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { execSync } from "node:child_process";
 import https from "node:https";
 import { join, dirname, basename, resolve } from "node:path";
@@ -21,9 +22,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 let _stdinData = {};
 try {
   const raw = readFileSync(0, "utf8").trim();
-  if (raw) {
-    _stdinData = JSON.parse(raw);
-  }
+  if (raw) _stdinData = JSON.parse(raw);
 } catch { /* stdin may be empty or unavailable */ }
 
 // --- ANSI colors ---
@@ -46,232 +45,124 @@ function loadConfig() {
     showProjectName: true,
     showGitBranch: true,
     showWorktree: true,
-    showMode: true,
-    showHealth: true,
-    showWorkItem: true,
-    showDot: true,
-    showLastActivity: true,
-    showSummary: true,
-    showPhase: false,
-    cchStateDir: ".claude/cch",
+    showWorkflow: true,
+    showTokenUsage: true,
   };
   try {
     if (existsSync(configPath)) {
-      const raw = JSON.parse(readFileSync(configPath, "utf8"));
-      return { ...defaults, ...raw };
+      return { ...defaults, ...JSON.parse(readFileSync(configPath, "utf8")) };
     }
   } catch { /* use defaults */ }
   return defaults;
 }
 
-// --- CCH State Readers ---
+// --- Utility ---
 function readFile(path) {
   try {
     return existsSync(path) ? readFileSync(path, "utf8").trim() : "";
   } catch { return ""; }
 }
 
-function findCchStateDir() {
-  // Try CWD first, then walk up to find .claude/cch
-  const candidates = [
-    join(process.cwd(), ".claude", "cch"),
-    join(process.env.CCH_STATE_DIR || ""),
-  ];
-  for (const dir of candidates) {
-    if (dir && existsSync(dir)) return dir;
-  }
-  return "";
-}
-
-function getCchMode(stateDir) {
-  const mode = readFile(join(stateDir, "mode"));
-  if (!mode) return null;
-  const colors = { plan: c.magenta, code: c.cyan, tool: c.yellow, swarm: c.green };
-  const color = colors[mode] || c.white;
-  return `${c.bold}[CCH:${color}${mode}${c.reset}${c.bold}]${c.reset}`;
-}
-
-function getCchHealth(stateDir) {
-  const health = readFile(join(stateDir, "health"));
-  if (!health) return null;
-  const reason = readFile(join(stateDir, "health_reason"));
-  const colors = { Healthy: c.green, Degraded: c.yellow, Blocked: c.red };
-  const color = colors[health] || c.dim;
-  let label = `${color}${health}${c.reset}`;
-  if (health === "Degraded" && reason) {
-    const shortReason = reason.split(",")[0].split(":")[0];
-    label += `${c.dim}(${shortReason})${c.reset}`;
-  }
-  return label;
-}
-
-function getActiveWorkItem(stateDir) {
-  const workDir = join(stateDir, "work-items");
-  if (!existsSync(workDir)) return null;
-
-  try {
-    const items = readdirSync(workDir);
-    for (const item of items) {
-      const todoFile = join(workDir, item, "todo.yaml");
-      if (!existsSync(todoFile)) continue;
-      const content = readFileSync(todoFile, "utf8");
-      const statusMatch = content.match(/^status:\s*(.+)$/m);
-      if (statusMatch && statusMatch[1].trim() === "doing") {
-        return `${c.cyan}WI:${item}${c.dim}(doing)${c.reset}`;
-      }
-    }
-  } catch { /* ignore */ }
-  return null;
-}
-
-function getLastActivity(stateDir) {
-  const raw = readFile(join(stateDir, "last_activity"));
-  if (!raw) return null;
-  const maxLen = 30;
-  if (raw.startsWith("done: ")) {
-    const text = raw.slice(6);
-    const display = text.length > maxLen ? text.slice(0, maxLen - 1) + "\u2026" : text;
-    return `${c.green}ok:${c.reset}${c.dim}${display}${c.reset}`;
-  }
-  const display = raw.length > maxLen ? raw.slice(0, maxLen - 1) + "\u2026" : raw;
-  return `${c.yellow}>>${c.reset} ${display}`;
-}
-
-/** Read Q&A summary from per-session directory, fallback to global, then most recent session */
-function getLastSummaryLines(stateDir, sessionId) {
-  const candidates = [];
-
-  // 1. Per-session file (preferred)
-  if (sessionId) {
-    candidates.push(join(stateDir, "sessions", sessionId, "last_summary"));
-  }
-
-  // 2. Global fallback
-  candidates.push(join(stateDir, "last_summary"));
-
-  // 3. Any existing session summary (last resort)
-  const sessionsDir = join(stateDir, "sessions");
-  if (existsSync(sessionsDir)) {
-    try {
-      const dirs = readdirSync(sessionsDir);
-      for (const dir of dirs) {
-        const summaryPath = join(sessionsDir, dir, "last_summary");
-        if (existsSync(summaryPath)) {
-          candidates.push(summaryPath);
-        }
-      }
-    } catch { /* ignore */ }
-  }
-
-  // Try each candidate in order
-  for (const filePath of candidates) {
-    const raw = readFile(filePath);
-    if (!raw) continue;
-
-    const lines = raw.split("\n");
-    const q = (lines[0] || "").trim();
-    const a = (lines[1] || "").trim();
-    const result = [];
-    if (q) result.push(`${c.cyan}Q:${c.reset} ${q}`);
-    if (a && a !== "done") {
-      result.push(`${c.green}A:${c.reset} ${a}`);
-    } else if (a === "done") {
-      result.push(`${c.green}A:${c.reset} ${c.dim}done${c.reset}`);
-    }
-    if (result.length > 0) return result;
-  }
-
-  return null;
-}
-
-/** Cleanup stale session directories (older than 24 hours) */
-function cleanupStaleSessions(stateDir, currentSessionId) {
-  const sessionsDir = join(stateDir, "sessions");
-  if (!existsSync(sessionsDir)) return;
-  const maxAgeMs = 24 * 60 * 60 * 1000;
-  const now = Date.now();
-  try {
-    const dirs = readdirSync(sessionsDir);
-    for (const dir of dirs) {
-      if (dir === "default") continue;
-      if (currentSessionId && dir === currentSessionId) continue;
-      const dirPath = join(sessionsDir, dir);
-      try {
-        const dirStat = statSync(dirPath);
-        if (now - dirStat.mtimeMs > maxAgeMs) {
-          rmSync(dirPath, { recursive: true });
-        }
-      } catch { /* ignore */ }
-    }
-  } catch { /* ignore */ }
-}
-
+// --- Project / Git ---
 function getProjectName() {
   const cwd = process.cwd();
-  // Try package.json name first
   const pkgPath = join(cwd, "package.json");
   try {
     if (existsSync(pkgPath)) {
       const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
       if (pkg.name) return `${c.bold}${c.white}${pkg.name}${c.reset}`;
     }
-  } catch { /* fallback to dirname */ }
-  // Fallback to directory name
+  } catch { /* fallback */ }
   return `${c.bold}${c.white}${basename(cwd)}${c.reset}`;
 }
 
 function getGitBranch() {
   try {
     const branch = execSync("git rev-parse --abbrev-ref HEAD", {
-      stdio: ["pipe", "pipe", "pipe"],
-      timeout: 3000,
+      stdio: ["pipe", "pipe", "pipe"], timeout: 3000,
     }).toString().trim();
-    if (!branch) return null;
-    return `${c.magenta}${branch}${c.reset}`;
+    return branch ? `${c.magenta}${branch}${c.reset}` : null;
   } catch { return null; }
 }
 
 function getWorktreeInfo() {
   try {
-    const gitDir = execSync("git rev-parse --git-dir", {
+    const gitDir = resolve(execSync("git rev-parse --git-dir", {
       stdio: ["pipe", "pipe", "pipe"], timeout: 3000,
-    }).toString().trim();
-    const commonDir = execSync("git rev-parse --git-common-dir", {
+    }).toString().trim());
+    const commonDir = resolve(execSync("git rev-parse --git-common-dir", {
       stdio: ["pipe", "pipe", "pipe"], timeout: 3000,
-    }).toString().trim();
+    }).toString().trim());
 
-    const resolvedGitDir = resolve(gitDir);
-    const resolvedCommonDir = resolve(commonDir);
-
-    // git-dir !== git-common-dir means we're in a worktree
-    if (resolvedGitDir !== resolvedCommonDir) {
+    if (gitDir !== commonDir) {
       const toplevel = execSync("git rev-parse --show-toplevel", {
         stdio: ["pipe", "pipe", "pipe"], timeout: 3000,
       }).toString().trim();
-      const wtName = basename(toplevel);
-      return `${c.yellow}wt:${wtName}${c.reset}`;
+      return `${c.yellow}wt:${basename(toplevel)}${c.reset}`;
     }
-  } catch { /* not in a git repo */ }
+  } catch { /* not in git repo */ }
   return null;
 }
 
-function getDotStatus(stateDir) {
-  const enabled = readFile(join(stateDir, "dot_enabled"));
-  if (enabled === "true") {
-    return `${c.green}DOT:on${c.reset}`;
+// --- v3 Workflow State ---
+function getWorkflowStatus() {
+  const statePath = join(process.cwd(), ".claude", "workflow-state.json");
+  const raw = readFile(statePath);
+  if (!raw) return `${c.dim}WF:none${c.reset}`;
+
+  try {
+    const state = JSON.parse(raw);
+    const wf = state.workflow || "?";
+    const name = state.name || "";
+    const currentStep = state.currentStep || 0;
+
+    // Count total steps and find current step info
+    const steps = state.steps || {};
+    const stepIds = Object.keys(steps);
+    const total = stepIds.length || "?";
+
+    // Find current step status
+    let currentId = "";
+    let currentStatus = "";
+    for (const [id, info] of Object.entries(steps)) {
+      if (info.status === "in-progress") {
+        currentId = id;
+        currentStatus = "in-progress";
+        break;
+      }
+    }
+
+    // If no in-progress, find the last completed to show next
+    if (!currentId) {
+      let lastCompleted = 0;
+      for (const [id, info] of Object.entries(steps)) {
+        if (info.status === "completed") lastCompleted++;
+      }
+      if (lastCompleted >= stepIds.length) {
+        return `${c.green}WF:${wf}${c.dim}(${name})${c.reset} ${c.green}✓ done${c.reset}`;
+      }
+      currentId = stepIds[lastCompleted] || "";
+      currentStatus = "pending";
+    }
+
+    // Determine step type indicator
+    const stepColor = currentStatus === "in-progress" ? c.cyan : c.yellow;
+    const stepNum = currentStep || (stepIds.indexOf(currentId) + 1);
+
+    return `${c.bold}WF:${c.cyan}${wf}${c.reset}${c.dim}(${name})${c.reset} ${stepColor}${stepNum}/${total}${c.reset} ${c.white}${currentId}${c.reset}`;
+  } catch {
+    return `${c.yellow}WF:error${c.reset}`;
   }
-  return `${c.dim}DOT:off${c.reset}`;
 }
 
 // --- Rate Limit API ---
 const RATE_CACHE_PATH = join(process.env.HOME || "", ".claude", "hud", ".rate-limit-cache.json");
-const RATE_CACHE_TTL_MS = 30_000; // 30s
+const RATE_CACHE_TTL_MS = 30_000;
 
 function readRateCache() {
   try {
     if (!existsSync(RATE_CACHE_PATH)) return null;
-    const raw = JSON.parse(readFileSync(RATE_CACHE_PATH, "utf8"));
-    return raw;
+    return JSON.parse(readFileSync(RATE_CACHE_PATH, "utf8"));
   } catch { return null; }
 }
 
@@ -284,7 +175,6 @@ function writeRateCache(data, error = false) {
 }
 
 function getOAuthCredentials() {
-  // 1. macOS Keychain
   if (process.platform === "darwin") {
     try {
       const raw = execSync(
@@ -298,7 +188,6 @@ function getOAuthCredentials() {
       }
     } catch { /* keychain not available */ }
   }
-  // 2. File fallback
   try {
     const credPath = join(process.env.HOME || "", ".claude", ".credentials.json");
     if (!existsSync(credPath)) return null;
@@ -310,7 +199,7 @@ function getOAuthCredentials() {
 }
 
 function fetchRateLimits(accessToken) {
-  return new Promise((resolve) => {
+  return new Promise((res) => {
     const req = https.request({
       hostname: "api.anthropic.com",
       path: "/api/oauth/usage",
@@ -321,47 +210,29 @@ function fetchRateLimits(accessToken) {
         "Content-Type": "application/json",
       },
       timeout: 3000,
-    }, (res) => {
+    }, (resp) => {
       let data = "";
-      res.on("data", (chunk) => { data += chunk; });
-      res.on("end", () => {
-        if (res.statusCode === 200) {
-          try { resolve(JSON.parse(data)); } catch { resolve(null); }
-        } else { resolve(null); }
+      resp.on("data", (chunk) => { data += chunk; });
+      resp.on("end", () => {
+        if (resp.statusCode === 200) {
+          try { res(JSON.parse(data)); } catch { res(null); }
+        } else { res(null); }
       });
     });
-    req.on("error", () => resolve(null));
-    req.on("timeout", () => { req.destroy(); resolve(null); });
+    req.on("error", () => res(null));
+    req.on("timeout", () => { req.destroy(); res(null); });
     req.end();
   });
 }
 
-function parseRateLimits(resp) {
-  const fh = resp?.five_hour?.utilization;
-  const wk = resp?.seven_day?.utilization;
-  if (fh == null && wk == null) return null;
-  const clamp = (v) => (v == null || !isFinite(v)) ? 0 : Math.max(0, Math.min(100, v));
-  return {
-    fiveHourPercent: clamp(fh),
-    weeklyPercent: clamp(wk),
-    fiveHourResetsAt: resp?.five_hour?.resets_at || null,
-    weeklyResetsAt: resp?.seven_day?.resets_at || null,
-  };
-}
-
 async function getRateLimitData() {
-  // Check cache
   const cache = readRateCache();
   if (cache && (Date.now() - cache.timestamp < RATE_CACHE_TTL_MS) && !cache.error) {
     return cache.data;
   }
 
-  // Fetch fresh data
   const creds = getOAuthCredentials();
-  if (!creds?.accessToken) {
-    // No creds: use stale cache if available
-    return cache?.data || null;
-  }
+  if (!creds?.accessToken) return cache?.data || null;
 
   const resp = await fetchRateLimits(creds.accessToken);
   if (!resp) {
@@ -369,52 +240,69 @@ async function getRateLimitData() {
     return cache?.data || null;
   }
 
-  const parsed = parseRateLimits(resp);
+  const fh = resp?.five_hour?.utilization;
+  const wk = resp?.seven_day?.utilization;
+  const clamp = (v) => (v == null || !isFinite(v)) ? 0 : Math.max(0, Math.min(100, v));
+  const parsed = (fh == null && wk == null) ? null : {
+    fiveHourPercent: clamp(fh),
+    weeklyPercent: clamp(wk),
+    fiveHourResetsAt: resp?.five_hour?.resets_at || null,
+    weeklyResetsAt: resp?.seven_day?.resets_at || null,
+  };
   writeRateCache(parsed);
   return parsed;
 }
 
-// --- Token Usage ---
-async function getTokenUsage(stdinData) {
+// --- Token / Context Display ---
+function bar(pct) {
+  const width = 8;
+  const filled = Math.round((pct / 100) * width);
+  const empty = width - filled;
+  const color = pct >= 90 ? c.red : pct >= 70 ? c.yellow : c.green;
+  return `${c.dim}[${c.reset}${color}${"█".repeat(filled)}${c.dim}${"░".repeat(empty)}${c.reset}${c.dim}]${c.reset}`;
+}
+
+function pctColor(pct) { return pct >= 90 ? c.red : pct >= 70 ? c.yellow : c.green; }
+
+function resetInfo(isoStr) {
+  if (!isoStr) return "";
+  const diffMs = new Date(isoStr) - new Date();
+  if (diffMs <= 0) return "";
+  const h = Math.floor(diffMs / 3600000);
+  const m = Math.floor((diffMs % 3600000) / 60000);
+  return h > 0 ? `${h}h${m}m` : `${m}m`;
+}
+
+async function getTokenUsage() {
   const parts = [];
 
-  const bar = (pct) => {
-    const width = 8;
-    const filled = Math.round((pct / 100) * width);
-    const empty = width - filled;
-    let color = c.green;
-    if (pct >= 90) color = c.red;
-    else if (pct >= 70) color = c.yellow;
-    return `${c.dim}[${c.reset}${color}${"█".repeat(filled)}${c.dim}${"░".repeat(empty)}${c.reset}${c.dim}]${c.reset}`;
-  };
-
-  const pctColor = (pct) => pct >= 90 ? c.red : pct >= 70 ? c.yellow : c.green;
-
-  // 1. Rate limits from API (with cache)
+  // Rate limits
   try {
     const data = await getRateLimitData();
     if (data) {
       const fh = data.fiveHourPercent ?? 0;
       const wk = data.weeklyPercent ?? 0;
-
-      const resetInfo = (isoStr) => {
-        if (!isoStr) return "";
-        const d = new Date(isoStr);
-        const now = new Date();
-        const diffMs = d - now;
-        if (diffMs <= 0) return "";
-        const h = Math.floor(diffMs / 3600000);
-        const m = Math.floor((diffMs % 3600000) / 60000);
-        if (h > 0) return `${h}h${m}m`;
-        return `${m}m`;
-      };
-
-      const fhReset = resetInfo(data.fiveHourResetsAt);
-      const wkReset = resetInfo(data.weeklyResetsAt);
-
-      parts.push(`${c.dim}5h${c.reset}${bar(fh)}${pctColor(fh)}${fh}%${c.reset}${fhReset ? `${c.dim}(${fhReset})${c.reset}` : ""} ${c.dim}wk${c.reset}${bar(wk)}${pctColor(wk)}${wk}%${c.reset}${wkReset ? `${c.dim}(${wkReset})${c.reset}` : ""}`);
+      const fhR = resetInfo(data.fiveHourResetsAt);
+      const wkR = resetInfo(data.weeklyResetsAt);
+      parts.push(
+        `${c.dim}5h${c.reset}${bar(fh)}${pctColor(fh)}${fh}%${c.reset}${fhR ? `${c.dim}(${fhR})${c.reset}` : ""}` +
+        ` ${c.dim}wk${c.reset}${bar(wk)}${pctColor(wk)}${wk}%${c.reset}${wkR ? `${c.dim}(${wkR})${c.reset}` : ""}`
+      );
     }
   } catch { /* rate limit unavailable */ }
+
+  // Context window & cost
+  const ctxParts = [];
+  const ctx = _stdinData?.context_window;
+  if (ctx?.used_percentage != null) {
+    const pct = Math.round(ctx.used_percentage);
+    ctxParts.push(`${c.dim}ctx${c.reset}${bar(pct)}${pctColor(pct)}${pct}%${c.reset}`);
+  }
+  const cost = _stdinData?.cost?.total_cost_usd;
+  if (cost != null && cost > 0) {
+    ctxParts.push(`${c.dim}$${cost.toFixed(2)}${c.reset}`);
+  }
+  if (ctxParts.length) parts.push(ctxParts.join(" "));
 
   return parts.length ? parts.join(" ") : null;
 }
@@ -422,103 +310,33 @@ async function getTokenUsage(stdinData) {
 // --- Main ---
 async function main() {
   const config = loadConfig();
-  const stateDir = findCchStateDir();
   const sep = ` ${c.dim}|${c.reset} `;
 
-  // --- Line 1: project_name | branch ---
-  const line1Parts = [];
-
-  if (config.showProjectName) {
-    line1Parts.push(getProjectName());
-  }
-
+  // Line 1: project | branch | worktree
+  const line1 = [];
+  if (config.showProjectName) line1.push(getProjectName());
   if (config.showGitBranch) {
     const branch = getGitBranch();
-    if (branch) line1Parts.push(branch);
+    if (branch) line1.push(branch);
   }
-
   if (config.showWorktree) {
     const wt = getWorktreeInfo();
-    if (wt) line1Parts.push(wt);
+    if (wt) line1.push(wt);
   }
+  process.stdout.write(`${line1.join(sep)}\n`);
 
-  process.stdout.write(`${line1Parts.join(sep)}\n`);
-
-  // --- Line 2: limit | ctx | execution_info ---
-  const line2Parts = [];
-
-  // Rate limits
+  // Line 2: usage | workflow
+  const line2 = [];
   if (config.showTokenUsage) {
-    const usage = await getTokenUsage(_stdinData);
-    if (usage) line2Parts.push(usage);
+    const usage = await getTokenUsage();
+    if (usage) line2.push(usage);
   }
-
-  // Context window & cost
-  if (config.showTokenUsage) {
-    const ctxParts = [];
-    const ctxBar = (pct) => {
-      const width = 8;
-      const filled = Math.round((pct / 100) * width);
-      const empty = width - filled;
-      let color = c.green;
-      if (pct >= 90) color = c.red;
-      else if (pct >= 70) color = c.yellow;
-      return `${c.dim}[${c.reset}${color}${"█".repeat(filled)}${c.dim}${"░".repeat(empty)}${c.reset}${c.dim}]${c.reset}`;
-    };
-    const ctxPctColor = (pct) => pct >= 90 ? c.red : pct >= 70 ? c.yellow : c.green;
-
-    const ctx = _stdinData?.context_window;
-    if (ctx?.used_percentage != null) {
-      const pct = Math.round(ctx.used_percentage);
-      ctxParts.push(`${c.dim}ctx${c.reset}${ctxBar(pct)}${ctxPctColor(pct)}${pct}%${c.reset}`);
-    }
-    const cost = _stdinData?.cost?.total_cost_usd;
-    if (cost != null && cost > 0) {
-      ctxParts.push(`${c.dim}$${cost.toFixed(2)}${c.reset}`);
-    }
-    if (ctxParts.length) line2Parts.push(ctxParts.join(" "));
+  if (config.showWorkflow) {
+    line2.push(getWorkflowStatus());
   }
-
-  // Execution info (mode, health, work item, dot, activity)
-  if (stateDir) {
-    const execParts = [];
-    if (config.showMode) {
-      const mode = getCchMode(stateDir);
-      if (mode) execParts.push(mode);
-    }
-    if (config.showHealth) {
-      const health = getCchHealth(stateDir);
-      if (health) execParts.push(health);
-    }
-    if (config.showWorkItem) {
-      const wi = getActiveWorkItem(stateDir);
-      if (wi) execParts.push(wi);
-    }
-    if (config.showDot) {
-      const dot = getDotStatus(stateDir);
-      if (dot) execParts.push(dot);
-    }
-    if (!config.showSummary && config.showLastActivity) {
-      const activity = getLastActivity(stateDir);
-      if (activity) execParts.push(activity);
-    }
-    if (execParts.length > 0) {
-      line2Parts.push(execParts.join(" "));
-    }
+  if (line2.length > 0) {
+    process.stdout.write(`${line2.join(sep)}\n`);
   }
-
-  // Phase
-  if (config.showPhase && stateDir) {
-    const phase = readFile(join(stateDir, "phase"));
-    if (phase) line2Parts.push(`${c.yellow}phase:${phase}${c.reset}`);
-  }
-
-  if (line2Parts.length > 0) {
-    process.stdout.write(`${line2Parts.join(sep)}\n`);
-  }
-
-  // Periodic cleanup of stale session directories
-  if (stateDir) cleanupStaleSessions(stateDir, _stdinData.session_id || "");
 }
 
 main();

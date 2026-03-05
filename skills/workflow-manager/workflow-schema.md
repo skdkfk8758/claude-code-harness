@@ -41,6 +41,10 @@ steps:
   cross-cutting:             # optional, rules injected into agent prompt
     - tdd
     - verification
+  retry-on-fail:             # optional, auto-retry on review failure
+    fix-agent: code-refactor-master   # agent to dispatch for fixes
+    max-retries: 2                    # max retry attempts
+    trigger-status: "NEEDS_CHANGES"   # status value that triggers retry
 ```
 
 ### type: agent-chain (Sequential agents — automatic)
