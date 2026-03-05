@@ -1,0 +1,68 @@
+name: feature-development
+description: 기능 개발 워크플로우 — 설계부터 문서화까지
+
+steps:
+  - id: design
+    type: skill
+    skill: brainstorming
+    description: 요구사항 분석, 설계 옵션 비교, spec 문서 작성 → spec-reviewer 리뷰 루프
+    output: docs/plans/{date}-{name}-design.md
+    gate: user-approval
+
+  - id: planning
+    type: agent-chain
+    agents:
+      - planner
+      - plan-reviewer
+    description: |
+      승인된 설계 기반 3종 문서 생성 (전략/컨텍스트/체크리스트)
+      plan-reviewer가 비판적 리뷰 후 APPROVED/NEEDS_REVISION 판정
+      NEEDS_REVISION 시 planner 재호출
+    output:
+      - docs/plans/{date}-{name}-plan.md
+      - docs/plans/{date}-{name}-context.md
+      - docs/plans/{date}-{name}-tasks.md
+    auto: true
+
+  - id: task-breakdown
+    type: skill
+    skill: writing-plans
+    description: 플랜을 2-5분 단위 태스크로 분해, TDD 스텝 포함, plan-document-reviewer 리뷰
+    input: docs/plans/{date}-{name}-plan.md
+    output: docs/plans/{date}-{name}-tasks.md
+    gate: user-approval
+
+  - id: implementation
+    type: agent
+    agent: code-refactor-master
+    description: |
+      배치 실행 (3태스크/배치, 배치 간 체크포인트)
+      태스크당 2단계 리뷰: spec-reviewer → code-quality-reviewer
+    input: docs/plans/{date}-{name}-tasks.md
+    cross-cutting:
+      - tdd
+      - verification
+      - systematic-debugging
+    auto: true
+
+  - id: review
+    type: agent
+    agent: code-architecture-reviewer
+    description: 전체 구현 변경점 아키텍처 리뷰, 리뷰 리포트 생성
+    output: docs/plans/{date}-{name}-review.md
+    auto: true
+
+  - id: documentation
+    type: agent
+    agent: documentation-architect
+    description: 변경사항 기반 문서 정리 (README, 아키텍처 문서 등)
+    optional: true
+    auto: true
+
+  - id: completion
+    type: skill
+    skill: finishing-branch
+    description: |
+      테스트 전체 통과 확인 후 4옵션 제시:
+      merge locally / create PR / keep branch / discard
+    gate: user-approval

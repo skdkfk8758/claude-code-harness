@@ -1,0 +1,288 @@
+{
+    "version": "1.0",
+    "description": "Skill activation triggers for CCH workflow. Controls when skills automatically suggest or block actions.",
+    "skills": {
+        "workflow": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "high",
+            "description": "Workflow orchestrator for multi-step development pipelines",
+            "promptTriggers": {
+                "keywords": [
+                    "workflow",
+                    "워크플로우",
+                    "파이프라인",
+                    "pipeline",
+                    "feature development",
+                    "기능 개발",
+                    "start project",
+                    "프로젝트 시작"
+                ],
+                "intentPatterns": [
+                    "(start|begin|시작).*?(feature|기능|project|프로젝트|workflow|워크플로우)",
+                    "(which|어떤).*?(workflow|워크플로우)",
+                    "(resume|재개|이어).*?(workflow|워크플로우|작업)"
+                ]
+            }
+        },
+        "brainstorming": {
+            "type": "guardrail",
+            "enforcement": "suggest",
+            "priority": "high",
+            "description": "Design gate — must be used before any creative or feature work",
+            "promptTriggers": {
+                "keywords": [
+                    "design",
+                    "설계",
+                    "brainstorm",
+                    "브레인스토밍",
+                    "feature",
+                    "기능",
+                    "new feature",
+                    "새 기능",
+                    "architecture",
+                    "아키텍처",
+                    "approach",
+                    "접근법",
+                    "option",
+                    "옵션"
+                ],
+                "intentPatterns": [
+                    "(create|add|build|implement|만들|추가|구현).*?(feature|기능|component|컴포넌트)",
+                    "(design|설계|plan|계획).*?(approach|접근|option|옵션)",
+                    "(how should|어떻게).*?(implement|구현|design|설계|build|만들)",
+                    "(compare|비교).*?(option|옵션|approach|접근)"
+                ]
+            }
+        },
+        "writing-plans": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "high",
+            "description": "Task decomposition gate — break plans into executable tasks",
+            "promptTriggers": {
+                "keywords": [
+                    "task breakdown",
+                    "태스크 분해",
+                    "task list",
+                    "작업 목록",
+                    "decompose",
+                    "분해",
+                    "implementation plan",
+                    "구현 계획",
+                    "write plan",
+                    "플랜 작성"
+                ],
+                "intentPatterns": [
+                    "(break|split|decompose|분해|쪼개).*?(task|작업|plan|플랜)",
+                    "(create|write|작성).*?(task|작업).*?(list|목록|plan|플랜)",
+                    "(plan|플랜).*?(execution|실행|implementation|구현)"
+                ]
+            }
+        },
+        "finishing-branch": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "high",
+            "description": "Completion gate — verify and integrate finished work",
+            "promptTriggers": {
+                "keywords": [
+                    "done",
+                    "완료",
+                    "finish",
+                    "마무리",
+                    "merge",
+                    "머지",
+                    "PR",
+                    "pull request",
+                    "ship",
+                    "배포"
+                ],
+                "intentPatterns": [
+                    "(finish|complete|done|완료|마무리).*?(branch|브랜치|feature|기능|work|작업)",
+                    "(create|make|만들).*?(PR|pull request)",
+                    "(merge|머지).*?(branch|브랜치|main)"
+                ]
+            }
+        },
+        "tdd": {
+            "type": "guardrail",
+            "enforcement": "suggest",
+            "priority": "high",
+            "description": "TDD enforcement — no production code without failing test first",
+            "promptTriggers": {
+                "keywords": [
+                    "implement",
+                    "구현",
+                    "code",
+                    "코드",
+                    "write code",
+                    "코드 작성",
+                    "function",
+                    "함수",
+                    "class",
+                    "클래스"
+                ],
+                "intentPatterns": [
+                    "(write|create|implement|작성|구현|만들).*?(code|코드|function|함수|class|클래스|method|메서드)",
+                    "(add|추가).*?(feature|기능|endpoint|API)"
+                ]
+            },
+            "fileTriggers": {
+                "pathPatterns": [
+                    "src/**/*.ts",
+                    "src/**/*.tsx",
+                    "src/**/*.js",
+                    "lib/**/*.ts",
+                    "app/**/*.ts"
+                ],
+                "pathExclusions": [
+                    "**/*.test.*",
+                    "**/*.spec.*",
+                    "**/test/**",
+                    "**/tests/**"
+                ]
+            }
+        },
+        "systematic-debugging": {
+            "type": "guardrail",
+            "enforcement": "suggest",
+            "priority": "critical",
+            "description": "Debugging gate — root cause investigation before any fix",
+            "promptTriggers": {
+                "keywords": [
+                    "bug",
+                    "버그",
+                    "error",
+                    "에러",
+                    "fail",
+                    "실패",
+                    "broken",
+                    "깨진",
+                    "crash",
+                    "크래시",
+                    "not working",
+                    "안됨",
+                    "안 돼",
+                    "doesn't work"
+                ],
+                "intentPatterns": [
+                    "(fix|수정|고치|debug|디버그).*?(bug|버그|error|에러|issue|이슈)",
+                    "(test|테스트).*?(fail|실패|broken|깨진)",
+                    "(why|왜).*?(not working|안 돼|fail|실패|error|에러)",
+                    "something.*?(wrong|broke|broken)"
+                ]
+            }
+        },
+        "verification": {
+            "type": "guardrail",
+            "enforcement": "suggest",
+            "priority": "critical",
+            "description": "Verification gate — run commands before claiming success",
+            "promptTriggers": {
+                "keywords": [
+                    "done",
+                    "완료",
+                    "fixed",
+                    "수정됨",
+                    "works",
+                    "작동",
+                    "passing",
+                    "통과",
+                    "ready",
+                    "준비",
+                    "commit",
+                    "커밋"
+                ],
+                "intentPatterns": [
+                    "(it|this).*?(works|passes|is fixed|is done)",
+                    "(ready to|준비).*?(commit|커밋|merge|머지|PR|ship)",
+                    "(all|모든).*?(tests|테스트).*?(pass|통과)"
+                ]
+            }
+        },
+        "skill-manager": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "high",
+            "description": "Skill and agent CRUD — add, remove, edit, validate skills and agents",
+            "promptTriggers": {
+                "keywords": [
+                    "add skill",
+                    "스킬 추가",
+                    "create skill",
+                    "스킬 생성",
+                    "delete skill",
+                    "스킬 삭제",
+                    "edit skill",
+                    "스킬 수정",
+                    "manage skill",
+                    "스킬 관리",
+                    "add agent",
+                    "에이전트 추가",
+                    "create agent",
+                    "에이전트 생성",
+                    "delete agent",
+                    "에이전트 삭제",
+                    "validate skill",
+                    "스킬 검증",
+                    "dependency",
+                    "의존성"
+                ],
+                "intentPatterns": [
+                    "(add|create|make|추가|생성|만들).*?(skill|스킬|agent|에이전트)",
+                    "(delete|remove|삭제|제거).*?(skill|스킬|agent|에이전트)",
+                    "(edit|modify|update|수정|변경).*?(skill|스킬|agent|에이전트)",
+                    "(list|show|목록|보여).*?(skill|스킬|agent|에이전트)",
+                    "(validate|check|검증|확인).*?(skill|스킬|agent|에이전트)",
+                    "(dependency|deps|의존성|참조).*?(analysis|분석|map|맵)"
+                ]
+            }
+        },
+        "workflow-manager": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "high",
+            "description": "Workflow CRUD — add, remove, edit, validate workflow definitions",
+            "promptTriggers": {
+                "keywords": [
+                    "add workflow",
+                    "워크플로우 추가",
+                    "create workflow",
+                    "워크플로우 생성",
+                    "delete workflow",
+                    "워크플로우 삭제",
+                    "edit workflow",
+                    "워크플로우 수정",
+                    "manage workflow",
+                    "워크플로우 관리",
+                    "validate workflow",
+                    "워크플로우 검증",
+                    "list workflow",
+                    "워크플로우 목록"
+                ],
+                "intentPatterns": [
+                    "(add|create|make|추가|생성|만들).*?(workflow|워크플로우)",
+                    "(delete|remove|삭제|제거).*?(workflow|워크플로우)",
+                    "(edit|modify|update|수정|변경).*?(workflow|워크플로우)",
+                    "(list|show|목록|보여).*?(workflow|워크플로우)",
+                    "(validate|check|검증|확인).*?(workflow|워크플로우)"
+                ]
+            }
+        }
+    },
+    "notes": {
+        "enforcement_types": {
+            "suggest": "Skill suggestion appears but doesn't block execution",
+            "block": "Requires skill to be used before proceeding (guardrail)",
+            "warn": "Shows warning but allows proceeding"
+        },
+        "priority_levels": {
+            "critical": "Always trigger when matched",
+            "high": "Trigger for most matches",
+            "medium": "Trigger for clear matches",
+            "low": "Trigger only for explicit matches"
+        },
+        "customization": "Projects can add domain-specific skills by extending this file"
+    }
+}

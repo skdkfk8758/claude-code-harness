@@ -1,0 +1,66 @@
+name: refactor
+description: 리팩토링 워크플로우 — 코드 분석부터 안전한 구조 변경까지
+
+steps:
+  - id: analysis
+    type: agent
+    agent: refactor-planner
+    description: |
+      코드 스멜 분석, SOLID 위반 탐지, 리팩토링 전략 수립
+      현재 구조 → 목표 구조 → 마이그레이션 경로 도출
+    output: docs/plans/{date}-{name}-refactor-analysis.md
+    auto: true
+
+  - id: design-review
+    type: skill
+    skill: brainstorming
+    description: 리팩토링 전략 검토 — 접근법 비교, 리스크 평가, 사용자 승인
+    input: docs/plans/{date}-{name}-refactor-analysis.md
+    gate: user-approval
+
+  - id: planning
+    type: agent-chain
+    agents:
+      - planner
+      - plan-reviewer
+    description: 승인된 전략 기반 단계별 플랜 생성 + 비판적 리뷰
+    output: docs/plans/{date}-{name}-plan.md
+    auto: true
+
+  - id: task-breakdown
+    type: skill
+    skill: writing-plans
+    description: 리팩토링 태스크 분해 — 각 단계가 독립적으로 동작 가능하도록 구성
+    input: docs/plans/{date}-{name}-plan.md
+    gate: user-approval
+
+  - id: implementation
+    type: agent
+    agent: code-refactor-master
+    description: |
+      4단계 실행 (Discovery → Planning → Execution → Verification)
+      파일 이동 시 모든 importer 추적 및 업데이트
+      300줄 초과 컴포넌트 자동 분리
+    input: docs/plans/{date}-{name}-tasks.md
+    cross-cutting:
+      - tdd
+      - verification
+    auto: true
+
+  - id: review
+    type: agent
+    agent: code-architecture-reviewer
+    description: 리팩토링 결과 아키텍처 리뷰 — 구조 개선 확인, 회귀 체크
+    auto: true
+
+  - id: documentation
+    type: agent
+    agent: documentation-architect
+    description: 구조 변경 반영 문서 업데이트
+    auto: true
+
+  - id: completion
+    type: skill
+    skill: finishing-branch
+    description: 전체 테스트 통과 확인 후 merge/PR/keep/discard 선택
+    gate: user-approval

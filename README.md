@@ -1,91 +1,179 @@
 # Claude Code Harness (CCH)
-> Claude Code 경량 오케스트레이션 플러그인
+> Claude Code 워크플로우 오케스트레이션 플러그인
 
 ## 개요
-CCH는 Claude Code에서 동작하는 경량 오케스트레이션 플러그인이다. Tier 기반 환경 감지, Hook 자동화를 제공하며, 설계→구현→검증 파이프라인을 통합한다.
+
+CCH는 Claude Code에서 동작하는 워크플로우 오케스트레이션 플러그인이다.
+**스킬은 게이트(관문)**, **에이전트는 실행자** 패턴으로 설계→구현→검증 파이프라인을 구조화한다.
+
+## 설계 원칙
+
+- **스킬 = 게이트**: 사용자 승인이 필요한 의사결정 체크포인트. 사용자가 `/skill-name`으로 직접 호출
+- **에이전트 = 실행자**: 승인된 산출물 기반 역할 수행. 워크플로우 오케스트레이터가 자동 dispatch
+- **워크플로우 = 선언적 정의**: YAML로 단계 순서, 게이트/에이전트 타입, 자동 실행 여부 정의
+- **크로스커팅 룰**: TDD, 검증, 디버깅 규칙이 에이전트 dispatch 시 자동 주입
 
 ## Quick Start
 
 ```bash
-# 1. Claude Code 플러그인 설치
+# 1. 플러그인 설치
 /plugin install claude-code-harness
 
-# 2. 환경 초기화
-/cch-setup
-
-# 3. 상태 확인
-/cch-status
+# 2. 워크플로우 시작
+/workflow feature-dev
 ```
 
-## 스킬 목록
+## 실행 가이드
 
-### Core (8개)
+### `/workflow feature-dev` 실행 시 흐름
 
-| 스킬 | 설명 |
-|------|------|
-| cch-setup | Initialize Claude Code Harness environment. Checks paths, permissions, creates state directory, and validates capability sources. |
-| cch-plan | 설계(인터뷰) → 플래닝 → TODO 작성 통합 워크플로우. Smart Entry로 입력 상태에 따라 적절한 Phase부터 시작. |
-| cch-commit | Analyze changes and create logical, well-structured commits with Plan trailers. |
-| cch-todo | Show all tasks from plan documents and current session TaskList. |
-| cch-verify | Verify implementation before claiming completion. Runs tests, checks output, validates against spec. |
-| cch-review | Code review checklist with optional subagent dispatch. Reviews implementation against spec and coding standards. |
-| cch-status | Show CCH health status including current mode, tier, health state, and reason codes. |
-| cch-pr | Create a pull request with plan references, TODO linking, and structured description. |
+```
+Step 1/7 [Gate] design
+  → 오케스트레이터: "Please run /brainstorming"
+  → 사용자: /brainstorming my-feature
+  → 산출물: docs/plans/2026-03-06-my-feature-design.md
+  → 사용자: "승인"
 
-### Utility (10개)
+Step 2/7 [Auto] planning (agent-chain)
+  → 오케스트레이터: planner 에이전트 자동 dispatch
+  → 산출물: *-plan.md, *-context.md, *-tasks.md
+  → 오케스트레이터: plan-reviewer 에이전트 자동 dispatch
+  → NEEDS_REVISION이면 planner 재호출 (최대 2회)
 
-| 스킬 | 설명 |
-|------|------|
-| cch-init | 프로젝트 분석 및 CCH 마이그레이션 — 스캔→문서→스캐폴딩 통합 파이프라인 |
-| cch-init-scan | 프로젝트 심층 분석 — 메타데이터/구조/문서/git/아키텍처 스캔 |
-| cch-init-docs | 프로젝트 문서 역산 생성 — Architecture/PRD/Roadmap/TODO 4개 문서 자동 생성 |
-| cch-init-scaffold | CCH 구조 스캐폴딩 — 디렉터리/매니페스트/프로필/훅 자동 생성 |
-| cch-arch-guide | 프로젝트 복잡도 인터뷰를 통한 아키텍처 레벨 결정 및 구조 스캐폴딩 |
-| cch-excalidraw | Excalidraw 다이어그램 생성 — 워크플로우, 아키텍처, 개념을 시각화 |
-| cch-lsp | Project LSP detection/installation — file scan, interview, LSP server install, Serena config |
-| cch-pinchtab | PinchTab 기반 웹 UI 디버깅/테스트/워크플로우 오케스트레이터 |
-| cch-team | Run dev->test->verify pipeline with automatic documentation |
-| cch-full-pipeline | End-to-end: PRD interview -> team build -> parallel implementation -> verification -> delivery. |
+Step 3/7 [Gate] task-breakdown
+  → 오케스트레이터: "Please run /writing-plans"
+  → 사용자: /writing-plans docs/plans/2026-03-06-my-feature-plan.md
+  → 산출물: *-tasks.md (배치 구분된 태스크 목록)
+  → 사용자: "승인"
 
-## 스크립트
+Step 4/7 [Auto] implementation
+  → 오케스트레이터: code-refactor-master 에이전트 dispatch
+  → 3태스크마다 체크포인트
+  → 태스크마다 2단계 리뷰 (spec-reviewer → code-quality-reviewer)
 
-| 스크립트 | 용도 |
+Step 5/7 [Auto] review
+  → 오케스트레이터: code-architecture-reviewer 에이전트 dispatch
+  → 산출물: *-review.md
+
+Step 6/7 [Auto] documentation (optional)
+  → 오케스트레이터: documentation-architect 에이전트 dispatch
+
+Step 7/7 [Gate] completion
+  → 오케스트레이터: "Please run /finishing-branch"
+  → 사용자: /finishing-branch
+  → 4옵션: merge / PR / keep / discard
+```
+
+### 핵심: 사용자가 해야 할 것
+1. `/workflow feature-dev` 시작
+2. 게이트(Gate)에서 해당 스킬 호출 (`/brainstorming`, `/writing-plans`, `/finishing-branch`)
+3. 산출물 확인 후 "승인" 응답
+4. 나머지는 오케스트레이터가 자동 처리
+
+### 상태 관리
+- `.claude/workflow-state.json`에 현재 진행 상태 저장
+- `/workflow feature-dev resume`으로 중단된 곳부터 재개
+- 세션이 끊겨도 상태 파일로 복구 가능
+
+## 워크플로우 3종
+
+### feature-dev (7단계)
+| Step | Type | Component | Action |
+|------|------|-----------|--------|
+| 1 | Gate | `/brainstorming` | 설계 승인 |
+| 2 | Auto | planner → plan-reviewer | 플랜 생성 + 리뷰 |
+| 3 | Gate | `/writing-plans` | 태스크 분해 승인 |
+| 4 | Auto | code-refactor-master | 구현 (배치+2단계 리뷰) |
+| 5 | Auto | code-architecture-reviewer | 아키텍처 리뷰 |
+| 6 | Auto | documentation-architect | 문서 정리 (선택) |
+| 7 | Gate | `/finishing-branch` | 완료 처리 |
+
+### bugfix (5단계)
+| Step | Type | Component | Action |
+|------|------|-----------|--------|
+| 1 | Gate | `/systematic-debugging` | 근본원인 조사 |
+| 2 | Auto | planner | 수정 계획 |
+| 3 | Auto | code-refactor-master | TDD 기반 수정 |
+| 4 | Auto | code-architecture-reviewer | 리뷰 |
+| 5 | Gate | `/finishing-branch` | 완료 처리 |
+
+### refactor (8단계)
+| Step | Type | Component | Action |
+|------|------|-----------|--------|
+| 1 | Auto | refactor-planner | 코드 분석 |
+| 2 | Gate | `/brainstorming` | 리팩토링 전략 승인 |
+| 3 | Auto | planner → plan-reviewer | 플랜 생성 + 리뷰 |
+| 4 | Gate | `/writing-plans` | 태스크 분해 승인 |
+| 5 | Auto | code-refactor-master | 구현 |
+| 6 | Auto | code-architecture-reviewer | 리뷰 |
+| 7 | Auto | documentation-architect | 문서 정리 |
+| 8 | Gate | `/finishing-branch` | 완료 처리 |
+
+## 스킬 (7)
+
+### 게이트 (4)
+| 스킬 | 호출 | 역할 |
+|------|------|------|
+| workflow | `/workflow <name>` | 오케스트레이터 — YAML 기반 진행 관리 |
+| brainstorming | `/brainstorming <topic>` | 설계 게이트 — 옵션 비교, spec-reviewer 리뷰 루프 |
+| writing-plans | `/writing-plans <file>` | 태스크 분해 게이트 — 2-5분 단위, plan-reviewer 리뷰 |
+| finishing-branch | `/finishing-branch` | 완료 게이트 — merge/PR/keep/discard |
+
+### 크로스커팅 (3)
+| 스킬 | 호출 | 적용 |
+|------|------|------|
+| verification | `/verification` | 완료 주장 전 실제 명령 실행 필수 |
+| tdd | `/tdd` | RED-GREEN-REFACTOR 강제 |
+| systematic-debugging | `/systematic-debugging` | 근본원인 조사 4단계 |
+
+## 에이전트 (10)
+
+| 에이전트 | 역할 |
 |---------|------|
-| test.sh | 테스트 하네스 실행 |
-| check-env.mjs | 환경 검증 (Tier/Plugin/MCP 감지) |
-| mode-detector.sh | Hook 기반 모드 감지 |
-| plan-bridge.mjs | Plan 모드 브릿지 |
-| summary-writer.mjs | 세션 Q&A 요약 기록 |
-| activity-tracker.mjs | 활동 추적 |
+| planner | 3종 문서 생성 (전략/컨텍스트/체크리스트) |
+| plan-reviewer | 플랜 비판적 리뷰, DB 영향/대안 평가 |
+| code-refactor-master | 배치 실행 + 2단계 리뷰, TDD 강제 |
+| spec-reviewer | 구현 vs spec 일치 검증 (구현자 불신 원칙) |
+| code-quality-reviewer | 코드 품질 리뷰 |
+| code-architecture-reviewer | 전체 아키텍처 리뷰 |
+| documentation-architect | 4단계 문서 업데이트 |
+| web-research-specialist | 기술 조사 |
+| refactor-planner | 코드 스멜/SOLID 분석 |
+| implementer-prompt-template | 서브에이전트 dispatch 템플릿 |
 
-## 설치 및 설정
+## 디렉터리 구조
 
-```bash
-# CCH 플러그인 설치
-/plugin install claude-code-harness
-
-# 초기화
-/cch-init
 ```
-
-## 문서
-
-- [PRD](docs/PRD.md)
-- [Architecture](docs/Architecture.md)
-- [Roadmap](docs/Roadmap.md)
-
-## 테스트
-
-```bash
-# 전체 테스트 실행
-bash scripts/test.sh all
-
-# 개별 레이어
-bash scripts/test.sh contract
-bash scripts/test.sh skill
-bash scripts/test.sh workflow
-bash scripts/test.sh resilience
-bash scripts/test.sh branch
+skills/
+  workflow/                        # 오케스트레이터
+    SKILL.md
+    feature-dev.yaml               # 워크플로우 정의
+    bugfix.yaml
+    refactor.yaml
+  brainstorming/                   # 설계 게이트
+    SKILL.md
+    spec-document-reviewer-prompt.md
+  writing-plans/                   # 태스크 분해 게이트
+    SKILL.md
+    plan-document-reviewer-prompt.md
+  finishing-branch/SKILL.md        # 완료 게이트
+  verification/SKILL.md            # 크로스커팅
+  tdd/SKILL.md
+  systematic-debugging/SKILL.md
+  skill-rules.json                 # 스킬 자동 활성화 트리거
+agents/                            # 에이전트 (실행자)
+  planner.md
+  plan-reviewer.md
+  code-refactor-master.md
+  spec-reviewer.md
+  code-quality-reviewer.md
+  code-architecture-reviewer.md
+  documentation-architect.md
+  web-research-specialist.md
+  refactor-planner.md
+  implementer-prompt-template.md
+docs/plans/                        # 산출물 (프로젝트별 생성)
+.claude/workflow-state.json        # 워크플로우 상태 (자동 생성)
 ```
 
 ## License
