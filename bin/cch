@@ -14,8 +14,6 @@ CCH_LIB_DIR="$CCH_ROOT/bin/lib"
 [[ -f "$CCH_LIB_DIR/log.sh" ]] && source "$CCH_LIB_DIR/log.sh"
 # shellcheck source=lib/branch.sh
 [[ -f "$CCH_LIB_DIR/branch.sh" ]] && source "$CCH_LIB_DIR/branch.sh"
-# shellcheck source=lib/beads.sh
-[[ -f "$CCH_LIB_DIR/beads.sh" ]] && source "$CCH_LIB_DIR/beads.sh"
 # shellcheck source=lib/lock.sh
 [[ -f "$CCH_LIB_DIR/lock.sh" ]] && source "$CCH_LIB_DIR/lock.sh"
 # shellcheck source=lib/skill.sh
@@ -86,9 +84,7 @@ read_health_reasons() {
 }
 
 # --- Tier System ---
-# Tier 0: CCH core only (no plugins)
-# Tier 1: CCH + any plugin (superpowers, gptaku, etc.)
-# Tier 2: CCH + any plugin + extensions (MCP, etc.)
+# Tier 0: CCH core only
 
 _calculate_tier() {
   local tier=0
@@ -407,9 +403,7 @@ Commands:
   mode [<mode>]      Get/set mode (plan|code)
   status [--json]    Show health status
   branch [cmd]       Branch workflow management
-  beads [cmd]        Beads task tracking (create|list|show|ready|close|dep)
   skill [cmd]        Skill management (list|info|search|sources|validate)
-  todo               Alias for 'beads list' (legacy compatibility)
   log [show|tail]    Execution log viewer
   version            Show version
   help               Show this help
@@ -440,8 +434,6 @@ main() {
     mode)            cmd_mode "$@" || _cch_exit_code=$? ;;
     status)          cmd_status "$@" || _cch_exit_code=$? ;;
     branch)          cmd_branch "$@" || _cch_exit_code=$? ;;
-    beads)           cmd_beads "$@" || _cch_exit_code=$? ;;
-    todo)            cmd_beads list "$@" || _cch_exit_code=$? ;;
     log)             cmd_log "$@" || _cch_exit_code=$? ;;
     skill)           cmd_skill "$@" || _cch_exit_code=$? ;;
     version)         cmd_version || _cch_exit_code=$? ;;

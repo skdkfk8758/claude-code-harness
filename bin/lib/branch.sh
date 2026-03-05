@@ -183,7 +183,6 @@ branch_current() {
   if [[ -f "$sf" ]]; then
     echo "Type:     $(yaml_get "$sf" "type")"
     echo "Work-Item: $(yaml_get "$sf" "work_id")"
-    echo "Bead:     $(yaml_get "$sf" "bead_id")"
     echo "Base:     $(yaml_get "$sf" "base")"
     echo "Status:   $(yaml_get "$sf" "status")"
     echo "Created:  $(yaml_get "$sf" "created_at")"

@@ -33,10 +33,10 @@ describe("calculateTier", () => {
     assert.equal(tier, 0);
   });
 
-  it("returns 1 when superpowers plugin is installed", async () => {
+  it("returns 1 when a plugin is installed", async () => {
     const pluginDir = join(
       TEST_HOME,
-      ".claude/plugins/cache/superpowers-marketplace/superpowers/1.0.0"
+      ".claude/plugins/cache/test-marketplace/test-plugin/1.0.0"
     );
     mkdirSync(pluginDir, { recursive: true });
     const tier = await freshCalculateTier();
@@ -44,10 +44,10 @@ describe("calculateTier", () => {
     rmSync(join(TEST_HOME, ".claude"), { recursive: true, force: true });
   });
 
-  it("returns 1 when any non-superpowers plugin is installed", async () => {
+  it("returns 1 when another plugin is installed", async () => {
     const pluginDir = join(
       TEST_HOME,
-      ".claude/plugins/cache/gptaku-plugins/kkirikkiri/0.8.0"
+      ".claude/plugins/cache/another-marketplace/another-plugin/0.8.0"
     );
     mkdirSync(pluginDir, { recursive: true });
     const tier = await freshCalculateTier();
@@ -58,7 +58,7 @@ describe("calculateTier", () => {
   it("returns 2 when plugin + MCP servers exist", async () => {
     const pluginDir = join(
       TEST_HOME,
-      ".claude/plugins/cache/gptaku-plugins/kkirikkiri/0.8.0"
+      ".claude/plugins/cache/another-marketplace/another-plugin/0.8.0"
     );
     mkdirSync(pluginDir, { recursive: true });
     const mcpDir = join(TEST_HOME, ".claude");

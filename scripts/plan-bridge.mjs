@@ -155,25 +155,14 @@ function main() {
     // Step 7: Save execution-plan.json
     mkdirSync(CCH_STATE_DIR, { recursive: true });
     writeFileSync(EXEC_PLAN_FILE, JSON.stringify(execPlan, null, 2), "utf8");
-    // Step 8: Create bead (primary) + branch + switch mode
-    const beadsResults = runCchBatch([
-      `beads create "${parsed.goal}" --priority 1 --labels "plan:${parsed.work_id}"`,
-    ]);
-    if (beadsResults[0]?.ok) {
-      const beadMatch = (beadsResults[0].output || "").match(/cch-[a-z0-9]+/);
-      if (beadMatch) {
-        execPlan.bead_id = beadMatch[0];
-        writeFileSync(EXEC_PLAN_FILE, JSON.stringify(execPlan, null, 2), "utf8");
-      }
-    }
-
+    // Step 8: Create branch + switch mode
     const batchResults = runCchBatch([
       `branch create "${branchType}" "${parsed.work_id}"`,
       "mode code",
     ]);
 
     // G9: Collect warnings from failed commands
-    const warnings = [...beadsResults, ...batchResults].filter((r) => !r.ok);
+    const warnings = batchResults.filter((r) => !r.ok);
 
     // Step 9: Output additionalContext with pipeline trigger
     console.log(JSON.stringify(buildBridgeOutput(parsed, { success: true }, warnings)));

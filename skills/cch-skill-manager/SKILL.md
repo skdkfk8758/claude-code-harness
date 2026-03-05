@@ -98,7 +98,7 @@ Agent 도구로 호출:
 
 프롬프트에 포함할 내용:
 1. 분석 대상 (특정 스킬 또는 전체)
-2. 크로스 레퍼런스 패턴: `superpowers:name`, `cch-name`, `Skill("name")`, `bin/cch <cmd>`
+2. 크로스 레퍼런스 패턴: `cch-name`, `Skill("name")`, `bin/cch <cmd>`
 3. 중복 감지 기준 (description 유사도)
 4. 결과: 의존성 목록 + 충돌 경고
 
@@ -106,11 +106,3 @@ Agent 도구로 호출:
 
 서브커맨드 결과를 사용자에게 포맷하여 출력합니다.
 에이전트 결과는 요약하여 전달합니다.
-
-## Enhancement (Tier 1+)
-
-> superpowers 플러그인이 설치되어 있으면 다음 강화 기능을 활용합니다.
-
-- **Tier 1+**: `create` 시 `superpowers:writing-skills` TDD 워크플로우 자동 적용
-- **Tier 1+**: `lint` 시 `superpowers:verification-before-completion` 체크리스트 기반 검증
-- **Tier 2+**: `deps` 시 Serena MCP 도구로 심볼릭 크로스 레퍼런스 분석

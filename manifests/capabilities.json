@@ -1,18 +1,7 @@
 {
   "schema_version": 2,
-  "description": "CCH v2 capability manifest — single source of truth for capabilities, health rules, and error codes",
+  "description": "CCH capability manifest — single source of truth for capabilities, health rules, and error codes",
   "sources": {
-    "superpowers": {
-      "type": "plugin",
-      "description": "Core skill library (brainstorming, writing-plans, executing-plans, etc.)",
-      "required": false,
-      "health_rule": {
-        "condition": "unavailable",
-        "health": "Degraded",
-        "reason_code": "RC_SRC_UNAVAILABLE",
-        "impact": "quality_gate_weakened"
-      }
-    },
     "excalidraw": {
       "type": "plugin",
       "description": "Excalidraw diagram generation skill",

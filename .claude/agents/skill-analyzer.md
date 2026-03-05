@@ -10,7 +10,6 @@ You have access to: Read, Glob, Grep, Bash, Write, Edit, AskUserQuestion
 
 - **CCH repo**: `./skills/cch-*/SKILL.md`
 - **CCH cache**: `~/.claude/plugins/cache/claude-code-harness-marketplace/.../skills/`
-- **Superpowers**: `~/.claude/plugins/cache/superpowers-marketplace/.../skills/`
 - **Custom**: `~/.claude/commands/*.md`
 
 Use `bash bin/cch skill list` to get a full inventory, or `bash bin/cch skill sources` for source paths.
@@ -41,7 +40,7 @@ When performing lint analysis, check these rules:
 | SM005 | warn | Description under 500 characters |
 | SM006 | info | Body under 500 words (token efficiency) |
 | SM007 | warn | If `user-invocable: true`, `allowed-tools` should be present |
-| SM008 | info | Has `## Enhancement` section (tier utilization) |
+| SM008 | — | (removed in v3) |
 | SM009 | warn | Description not >80% similar to another skill |
 | SM010 | error | Name contains only letters, numbers, hyphens |
 | SM011 | info | Has `## When to Use` section |
@@ -52,11 +51,9 @@ For basic validation (SM001-SM003, SM010), use: `bash bin/cch skill validate <fi
 ## Dependency Analysis Patterns
 
 When analyzing dependencies, search for these cross-reference patterns:
-- `superpowers:skill-name` — Superpowers skill reference
 - `cch-skill-name` in text — CCH skill reference
 - `Skill("skill-name")` or `Skill(skill-name)` — Skill tool invocation
 - `bin/cch <command>` — CLI dependency
-- `Enhancement (Tier N+)` — Tier dependency
 
 ## Operating Modes
 
@@ -73,8 +70,7 @@ You will receive a prompt specifying one of these modes:
 1. Ask for the skill's purpose and target audience via AskUserQuestion
 2. Generate SKILL.md following the template above
 3. Ensure all required fields are present
-4. Include Enhancement section with appropriate tier features
-5. Write the file to `skills/<skill-name>/SKILL.md`
+4. Write the file to `skills/<skill-name>/SKILL.md`
 6. Validate with `bash bin/cch skill validate`
 
 ### edit mode

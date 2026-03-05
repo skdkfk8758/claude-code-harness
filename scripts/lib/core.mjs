@@ -113,18 +113,6 @@ export function buildStatusJson() {
     // not in git repo
   }
 
-  // Beads work items
-  let workItems = [];
-  try {
-    const output = execSync("bash bin/cch beads list --json 2>/dev/null", {
-      encoding: "utf8",
-      cwd: CCH_ROOT,
-    });
-    workItems = JSON.parse(output);
-  } catch {
-    // beads not available
-  }
-
   // Plans
   let plans = [];
   try {
@@ -144,7 +132,6 @@ export function buildStatusJson() {
     reason_codes: reasonCodes,
     branch: branchName,
     work_id: workId,
-    work_items: workItems,
     plans,
   };
 }

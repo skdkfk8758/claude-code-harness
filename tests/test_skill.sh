@@ -24,7 +24,7 @@ for skill in "${core_skills[@]}"; do
 done
 
 # Check Enhancement section exists in Tier-aware skills
-tier_aware_skills=("cch-setup" "cch-commit" "cch-plan" "cch-todo" "cch-verify" "cch-review" "cch-skill-manager")
+tier_aware_skills=("cch-setup" "cch-commit" "cch-plan" "cch-todo" "cch-verify" "cch-review")
 
 for skill in "${tier_aware_skills[@]}"; do
   skill_file="$SKILLS_DIR/$skill/SKILL.md"

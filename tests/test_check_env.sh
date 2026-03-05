@@ -64,7 +64,7 @@ assert_contains "check-env no-mcp: shows none for mcp" "none" "$nomcp_out"
 
 # --- Capabilities section lists manifest sources ---
 cap_out="$($CHECK_ENV --cli 2>&1)"
-assert_contains "check-env caps: lists superpowers" "superpowers" "$cap_out"
+assert_contains "check-env caps: lists excalidraw" "excalidraw" "$cap_out"
 
 # --- Hook mode context format: pipe-separated ---
 hook_ctx="$(echo '{}' | $CHECK_ENV 2>&1)"

@@ -3,7 +3,7 @@
  * CCH Environment Check (LW: replaces HRP 4-Phase scanner)
  *
  * Single-phase environment scan:
- *   1. Check installed plugins (superpowers, etc.)
+ *   1. Check installed plugins
  *   2. Check MCP server availability
  *   3. Check CLI tools (optional)
  *   4. Determine Tier (0/1/2)

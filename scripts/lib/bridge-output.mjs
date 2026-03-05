@@ -53,7 +53,6 @@ export function buildBridgeOutput(plan, status, warnings = []) {
     "",
     "인터뷰 결과가 자동 처리되었습니다:",
     `- 실행 계획: .claude/cch/execution-plan.json`,
-    `- Beads: ${plan.bead_id || "N/A"}`,
     "- 모드: code",
     "",
     "지금 즉시 /cch-team 파이프라인을 시작하세요.",

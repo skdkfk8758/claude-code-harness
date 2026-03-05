@@ -51,18 +51,18 @@ describe("checkEnv auto-register", () => {
   it("keeps static capabilities.json entries for known plugins", async () => {
     const pluginDir = join(
       TEST_HOME,
-      ".claude/plugins/cache/superpowers-marketplace/superpowers/4.0.0/skills"
+      ".claude/plugins/cache/excalidraw-marketplace/excalidraw/1.0.0/skills"
     );
     mkdirSync(pluginDir, { recursive: true });
 
     const env = await freshCheckEnv();
 
     assert.ok(
-      env.capabilities["superpowers"],
-      "superpowers should be in capabilities"
+      env.capabilities["excalidraw"],
+      "excalidraw should be in capabilities"
     );
-    assert.equal(env.capabilities["superpowers"].detected, true);
-    assert.equal(env.capabilities["superpowers"].auto_detected, undefined);
+    assert.equal(env.capabilities["excalidraw"].detected, true);
+    assert.equal(env.capabilities["excalidraw"].auto_detected, undefined);
 
     rmSync(join(TEST_HOME, ".claude"), { recursive: true, force: true });
   });

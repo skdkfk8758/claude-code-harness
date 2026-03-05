@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# v2 Workflow - setup→mode→status→beads 워크플로우 검증
+# Workflow - setup→mode→status 워크플로우 검증
 
 CCH="bash $ROOT_DIR/bin/cch"
 
@@ -25,10 +25,6 @@ assert_contains "workflow: plan mode in status" "plan" "$out"
 $CCH mode code &>/dev/null
 out="$($CCH mode 2>&1)"
 assert_contains "workflow: back to code" "code" "$out"
-
-# --- Beads workflow ---
-out="$(bash "$ROOT_DIR/bin/cch" beads list 2>&1)" || true
-assert_not_contains "beads list: no crash" "command not found" "$out"
 
 # --- Status JSON reflects mode ---
 $CCH mode code &>/dev/null

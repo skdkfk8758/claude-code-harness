@@ -15,9 +15,3 @@ A fixture skill for testing the skill manager.
 ## When to Use
 
 Use this for automated tests only.
-
-## Enhancement (Tier 1+)
-
-> superpowers plugin enhancement.
-
-- **Tier 1+**: Example enhancement

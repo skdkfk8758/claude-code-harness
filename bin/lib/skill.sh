@@ -41,7 +41,6 @@ skill_parse_meta() {
 skill_list_sources() {
   local repo_skills="$CCH_ROOT/skills"
   local cch_cache=""
-  local sp_cache=""
   local custom_dir="$HOME/.claude/commands"
 
   # Find CCH cache
@@ -50,14 +49,6 @@ skill_list_sources() {
     local latest
     latest="$(find "$cache_base" -maxdepth 2 -name "skills" -type d 2>/dev/null | head -1)"
     [[ -n "$latest" ]] && cch_cache="$latest"
-  fi
-
-  # Find Superpowers cache
-  local sp_base="$HOME/.claude/plugins/cache/superpowers-marketplace"
-  if [[ -d "$sp_base" ]]; then
-    local latest
-    latest="$(find "$sp_base" -maxdepth 3 -name "skills" -type d 2>/dev/null | head -1)"
-    [[ -n "$latest" ]] && sp_cache="$latest"
   fi
 
   local first=true
@@ -71,7 +62,6 @@ skill_list_sources() {
   printf '['
   [[ -d "$repo_skills" ]] && _emit_source "cch-repo" "$repo_skills" "development"
   [[ -n "$cch_cache" ]] && _emit_source "cch-cache" "$cch_cache" "deployed"
-  [[ -n "$sp_cache" ]] && _emit_source "superpowers" "$sp_cache" "external"
   [[ -d "$custom_dir" ]] && _emit_source "custom" "$custom_dir" "user-defined"
   printf ']'
   echo
@@ -88,15 +78,13 @@ skill_scan_all() {
     while IFS= read -r skill_file; do
       [[ -f "$skill_file" ]] || continue
 
-      local name desc user_inv word_count has_enh
+      local name desc user_inv word_count
       name="$(skill_parse_meta "$skill_file" name)"
       [[ -z "$name" ]] && continue
 
       desc="$(skill_parse_meta "$skill_file" description)"
       user_inv="$(skill_parse_meta "$skill_file" user-invocable)"
       word_count="$(wc -w < "$skill_file" | tr -d ' ')"
-      has_enh="false"
-      grep -q "Enhancement" "$skill_file" 2>/dev/null && has_enh="true"
 
       $first || printf ','
       first=false
@@ -105,14 +93,13 @@ skill_scan_all() {
       local safe_desc
       safe_desc="$(printf '%s' "$desc" | sed 's/"/\\"/g' | head -c 200)"
 
-      printf '\n{"name":"%s","source":"%s","path":"%s","user_invocable":%s,"description":"%s","word_count":%s,"has_enhancement":%s}' \
+      printf '\n{"name":"%s","source":"%s","path":"%s","user_invocable":%s,"description":"%s","word_count":%s}' \
         "$name" \
         "$source_id" \
         "$skill_file" \
         "${user_inv:-false}" \
         "$safe_desc" \
-        "${word_count:-0}" \
-        "$has_enh"
+        "${word_count:-0}"
     done < <(find "$source_dir" -name "$pattern" -type f 2>/dev/null | sort)
   }
 
@@ -127,14 +114,6 @@ skill_scan_all() {
     local cache_skills
     cache_skills="$(find "$cache_base" -maxdepth 2 -name "skills" -type d 2>/dev/null | head -1)"
     [[ -n "$cache_skills" ]] && _scan_source "cch-cache" "$cache_skills" "SKILL.md"
-  fi
-
-  # Superpowers cache
-  local sp_base="$HOME/.claude/plugins/cache/superpowers-marketplace"
-  if [[ -d "$sp_base" ]]; then
-    local sp_skills
-    sp_skills="$(find "$sp_base" -maxdepth 3 -name "skills" -type d 2>/dev/null | head -1)"
-    [[ -n "$sp_skills" ]] && _scan_source "superpowers" "$sp_skills" "SKILL.md"
   fi
 
   # Custom commands
