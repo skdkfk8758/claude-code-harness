@@ -1,15 +1,15 @@
 # Agent Instructions
 
-This project uses **bd** (beads) for issue tracking. Run `bd onboard` to get started.
+This project uses **plan documents** (`docs/plans/`) for task tracking and **`bin/cch`** as the CLI engine.
 
 ## Quick Reference
 
 ```bash
-bd ready              # Find available work
-bd show <id>          # View issue details
-bd update <id> --status in_progress  # Claim work
-bd close <id>         # Complete work
-bd sync               # Sync with git
+bin/cch setup             # Initialize CCH environment
+bin/cch status            # Check health/mode/tier
+bin/cch mode [plan|code]  # Switch mode
+bin/cch branch create <type> <work-id>  # Create feature branch
+bin/cch skill list        # List available skills
 ```
 
 ## Landing the Plane (Session Completion)
@@ -20,11 +20,10 @@ bd sync               # Sync with git
 
 1. **File issues for remaining work** - Create issues for anything that needs follow-up
 2. **Run quality gates** (if code changed) - Tests, linters, builds
-3. **Update issue status** - Close finished work, update in-progress items
+3. **Update plan documents** - Mark completed items, update status
 4. **PUSH TO REMOTE** - This is MANDATORY:
    ```bash
    git pull --rebase
-   bd sync
    git push
    git status  # MUST show "up to date with origin"
    ```
@@ -37,4 +36,3 @@ bd sync               # Sync with git
 - NEVER stop before pushing - that leaves work stranded locally
 - NEVER say "ready to push when you are" - YOU must push
 - If push fails, resolve and retry until it succeeds
-
