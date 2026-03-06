@@ -1,5 +1,5 @@
 ---
-name: release
+name: cch-release
 description: Use when creating a release. Generates changelog from conventional commits, bumps version, creates git tag and GitHub Release.
 user-invocable: true
 allowed-tools: Bash, Read, Glob, Grep, AskUserQuestion, Write
@@ -79,20 +79,33 @@ Display: `Current: v{current} → Next: v{next}`
    git log $(git describe --tags --abbrev=0 2>/dev/null || git rev-list --max-parents=0 HEAD)..HEAD --format="%H %s"
    ```
 
-2. Parse conventional commit messages and group by type using `typeToSection` from config:
+2. Parse conventional commit messages and group by type using `typeToSection` from config.
+   CHANGELOG 및 릴리즈 노트는 한글로 작성:
    ```markdown
    ## [1.3.0] - 2026-03-06
 
-   ### Features
-   - **auth**: add OAuth2 login flow (#12)
-   - **api**: add rate limiting endpoint (#15)
+   ### 새 기능
+   - **auth**: OAuth2 로그인 플로우 추가 (#12)
+   - **api**: 속도 제한 엔드포인트 추가 (#15)
 
-   ### Bug Fixes
-   - **parser**: handle null input in tokenizer (#14)
+   ### 버그 수정
+   - **parser**: tokenizer에서 null 입력 처리 (#14)
 
-   ### Refactoring
-   - **utils**: extract validation helpers (#13)
+   ### 리팩토링
+   - **utils**: validation 헬퍼 추출 (#13)
    ```
+
+   Type → 한글 섹션 매핑:
+   | Type | 한글 섹션 |
+   |------|----------|
+   | feat | 새 기능 |
+   | fix | 버그 수정 |
+   | refactor | 리팩토링 |
+   | perf | 성능 개선 |
+   | docs | 문서 |
+   | test | 테스트 |
+   | chore | 기타 |
+   | ci | CI/CD |
 
 3. If `CHANGELOG.md` exists, prepend new section. If not, create it.
 
@@ -107,12 +120,26 @@ Update version in the file determined in Phase 1:
 
 If `release.versionFile` was `"auto"` and multiple candidates exist, ask user which to use and suggest updating config to avoid this next time.
 
+#### Plugin Metadata Sync
+
+프로젝트가 Claude Code 플러그인인 경우 (`.claude-plugin/` 디렉토리 존재 시), 다음 파일의 `version` 필드도 함께 업데이트:
+
+1. `.claude-plugin/plugin.json` → `"version"` 필드
+2. `.claude-plugin/marketplace.json` → `plugins[].version` 필드
+
+이 단계를 건너뛰면 플러그인 시스템이 이전 버전으로 인식하므로 **반드시** 동기화해야 한다.
+
 ### Phase 5: Commit, Tag, Push
 
 ```bash
-git add CHANGELOG.md <version-file>
-git commit -m "chore(release): v{version}"
-git tag -a v{version} -m "Release v{version}"
+git add CHANGELOG.md <version-file> .claude-plugin/plugin.json .claude-plugin/marketplace.json
+git commit -m "$(cat <<'EOF'
+chore(release): v{version} 릴리즈
+
+Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
+EOF
+)"
+git tag -a v{version} -m "v{version} 릴리즈"
 ```
 
 Ask user: "태그를 push하고 GitHub Release를 생성할까요?"
@@ -129,7 +156,7 @@ If `createGithubRelease` is true in config:
 
 ```bash
 gh release create v{version} \
-  --title "v{version}" \
+  --title "v{version} 릴리즈" \
   --notes-file <temp-release-notes>
 ```
 
