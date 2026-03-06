@@ -8,7 +8,7 @@
       "name": "claude-code-harness",
       "source": "./",
       "description": "Workflow orchestration plugin for Claude Code. Skill gates enforce checkpoints, agents execute roles.",
-      "version": "0.4.1"
+      "version": "0.4.2"
     }
   ]
 }
