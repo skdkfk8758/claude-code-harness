@@ -19,11 +19,20 @@ This skill's directory (for reading workflow YAMLs):
 !`echo ${CLAUDE_SKILL_DIR}`
 
 ## Available Workflows
-- `feature-dev` — 기능 개발 (설계→플래닝→구현→리뷰→완료)
-- `bugfix` — 버그 수정 (근본원인 조사→수정→리뷰→완료)
-- `refactor` — 리팩토링 (분석→설계→플래닝→구현→리뷰→완료)
-- `quick-fix` — 간단한 수정 (구현→리뷰→완료)
-- `planning-only` — 경량 플래닝 (설계→플래닝→태스크분해)
+
+이 스킬 디렉토리의 `*.yaml` 파일을 스캔하여 동적으로 목록을 구성한다.
+각 YAML의 `name`과 `description` 필드를 읽어 사용자에게 표시:
+
+```
+사용 가능한 워크플로우:
+  1. {name} — {description}
+  2. {name} — {description}
+  ...
+
+번호 또는 이름을 입력하세요:
+```
+
+YAML 파일이 없거나 읽기 실패 시: "등록된 워크플로우가 없습니다."
 
 ## Input Resolution
 
@@ -38,7 +47,7 @@ This skill's directory (for reading workflow YAMLs):
 
 ### 자연어 라우팅 (우선순위 3)
 
-인자가 알려진 YAML 파일명(`feature-dev`, `bugfix`, `refactor`, `quick-fix`, `planning-only`, `skill-creation`)과 매칭되지 않으면:
+인자가 이 스킬 디렉토리의 YAML 파일명(`*.yaml`에서 확장자 제거)과 매칭되지 않으면:
 
 1. 입력 전체를 `workflow-router-rules.json`의 분류 로직에 전달
 2. 최고 점수 워크플로우가 `minSignalCount` 이상이면 즉시 제안:
