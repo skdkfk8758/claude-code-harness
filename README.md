@@ -58,10 +58,14 @@ Step 5/7 [Auto] review
   → 오케스트레이터: code-architecture-reviewer 에이전트 dispatch
   → 산출물: *-review.md
 
-Step 6/7 [Auto] documentation (optional)
+Step 6/8 [Cond] code-optimization
+  → PASS_WITH_NOTES일 때만 실행 (PASS면 스킵)
+  → advisory 항목 기반 중복 제거, 단순화, 재사용성 개선
+
+Step 7/8 [Auto] documentation (optional)
   → 오케스트레이터: documentation-architect 에이전트 dispatch
 
-Step 7/7 [Gate] completion
+Step 8/8 [Gate] completion
   → 오케스트레이터: "Please run /finishing-branch"
   → 사용자: /finishing-branch
   → 4옵션: merge / PR / keep / discard
@@ -73,44 +77,61 @@ Step 7/7 [Gate] completion
 3. 산출물 확인 후 "승인" 응답
 4. 나머지는 오케스트레이터가 자동 처리
 
-### 상태 관리
-- `.claude/workflow-state.json`에 현재 진행 상태 저장
-- `/workflow feature-dev resume`으로 중단된 곳부터 재개
-- 세션이 끊겨도 상태 파일로 복구 가능
+### 상태 관리 + 세션 연속성
+- `.claude/workflow-state.json`에 진행 상태 + 결정사항 + 이슈 자동 기록
+- `/workflow feature-dev resume`으로 중단된 곳부터 재개 (컨텍스트 자동 복구)
+- 각 스텝 완료 시 summary, decisions, issues를 자동 추출하여 저장
+- resume 시 이전 결정사항 요약 출력 + 산출물 파일 재로드
 
-## 워크플로우 3종
+### 워크플로우 라우터
+- 사용자 입력을 분석하여 적합한 워크플로우를 자동 제안
+- 규칙 기반 분류 (2개 이상 신호 매칭 시에만 제안, 피로감 방지)
+- `workflow-router-rules.json`에서 분류 규칙 커스터마이징 가능
 
-### feature-dev (7단계)
+## 워크플로우 4종
+
+### feature-dev (8단계)
 | Step | Type | Component | Action |
 |------|------|-----------|--------|
 | 1 | Gate | `/brainstorming` | 설계 승인 |
 | 2 | Auto | planner → plan-reviewer | 플랜 생성 + 리뷰 |
 | 3 | Gate | `/writing-plans` | 태스크 분해 승인 |
-| 4 | Auto | code-refactor-master | 구현 (배치+2단계 리뷰) |
-| 5 | Auto | code-architecture-reviewer | 아키텍처 리뷰 |
-| 6 | Auto | documentation-architect | 문서 정리 (선택) |
-| 7 | Gate | `/finishing-branch` | 완료 처리 |
+| 4 | Auto | code-refactor-master | 구현 (배치+2단계 리뷰, tdd/verification enforce) |
+| 5 | Auto | code-architecture-reviewer | 아키텍처 리뷰 + 검증 드리프트 탐지 (retry-on-fail) |
+| 6 | Cond | code-refactor-master | 리뷰 advisory 있을 때만 전역 최적화 |
+| 7 | Auto | documentation-architect | 문서 정리 (선택) |
+| 8 | Gate | `/finishing-branch` | 완료 처리 |
 
-### bugfix (5단계)
+### bugfix (6단계)
 | Step | Type | Component | Action |
 |------|------|-----------|--------|
 | 1 | Gate | `/systematic-debugging` | 근본원인 조사 |
 | 2 | Auto | planner | 수정 계획 |
-| 3 | Auto | code-refactor-master | TDD 기반 수정 |
-| 4 | Auto | code-architecture-reviewer | 리뷰 |
-| 5 | Gate | `/finishing-branch` | 완료 처리 |
+| 3 | Auto | code-refactor-master | TDD 기반 수정 (tdd/verification enforce) |
+| 4 | Auto | code-architecture-reviewer | 리뷰 + 검증 드리프트 (retry-on-fail) |
+| 5 | Cond | code-refactor-master | 리뷰 advisory 있을 때만 최적화 |
+| 6 | Gate | `/finishing-branch` | 완료 처리 |
 
-### refactor (8단계)
+### refactor (9단계)
 | Step | Type | Component | Action |
 |------|------|-----------|--------|
 | 1 | Auto | refactor-planner | 코드 분석 |
 | 2 | Gate | `/brainstorming` | 리팩토링 전략 승인 |
 | 3 | Auto | planner → plan-reviewer | 플랜 생성 + 리뷰 |
 | 4 | Gate | `/writing-plans` | 태스크 분해 승인 |
-| 5 | Auto | code-refactor-master | 구현 |
-| 6 | Auto | code-architecture-reviewer | 리뷰 |
-| 7 | Auto | documentation-architect | 문서 정리 |
-| 8 | Gate | `/finishing-branch` | 완료 처리 |
+| 5 | Auto | code-refactor-master | 구현 (tdd/verification enforce) |
+| 6 | Auto | code-architecture-reviewer | 리뷰 + 검증 드리프트 (retry-on-fail) |
+| 7 | Cond | code-refactor-master | 리뷰 advisory 있을 때만 전역 최적화 |
+| 8 | Auto | documentation-architect | 문서 정리 |
+| 9 | Gate | `/finishing-branch` | 완료 처리 |
+
+### quick-fix (4단계)
+| Step | Type | Component | Action |
+|------|------|-----------|--------|
+| 1 | Auto | code-refactor-master | 구현 (tdd/verification enforce) |
+| 2 | Auto | code-architecture-reviewer | 리뷰 (retry-on-fail 1회) |
+| 3 | Cond | code-refactor-master | 리뷰 advisory 있을 때만 최적화 |
+| 4 | Gate | `/finishing-branch` | 완료 처리 |
 
 ## 스킬 (11)
 
@@ -165,6 +186,8 @@ skills/
     feature-dev.yaml               # 워크플로우 정의
     bugfix.yaml
     refactor.yaml
+    quick-fix.yaml                 # 경량 워크플로우
+    workflow-router-rules.json     # 워크플로우 라우터 분류 규칙
   brainstorming/                   # 설계 게이트
     SKILL.md
     spec-document-reviewer-prompt.md
@@ -189,7 +212,9 @@ agents/                            # 에이전트 (실행자)
   web-research-specialist.md
   refactor-planner.md
   implementer-prompt-template.md
-docs/plans/                        # 산출물 (프로젝트별 생성)
+docs/
+  plans/                           # 산출물 (프로젝트별 생성)
+  lightweight-workflow-guide.md    # 경량 워크플로우 추가 가이드
 .claude/workflow-state.json        # 워크플로우 상태 (자동 생성)
 ```
 
