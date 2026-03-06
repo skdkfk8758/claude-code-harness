@@ -323,6 +323,28 @@
                 ]
             }
         },
+        "plan-cleanup": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "medium",
+            "description": "Archive completed workflow plan documents after verifying knowledge indexing status",
+            "promptTriggers": {
+                "keywords": [
+                    "플랜 정리",
+                    "문서 정리",
+                    "plan cleanup",
+                    "archive plans",
+                    "아카이브",
+                    "정리",
+                    "cleanup"
+                ],
+                "intentPatterns": [
+                    "(정리|cleanup|clean up|archive).*?(플랜|plan|문서|docs)",
+                    "(플랜|plan|문서|docs).*?(정리|cleanup|아카이브|archive)",
+                    "(오래된|old|완료된|completed).*?(문서|docs|플랜|plan).*?(정리|삭제|이동)"
+                ]
+            }
+        },
         "plan-viewer": {
             "type": "domain",
             "enforcement": "suggest",

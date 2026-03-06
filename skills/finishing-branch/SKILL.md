@@ -102,6 +102,7 @@ git checkout main && git branch -D <branch>
 ### Phase 5: Cleanup
 1. Update `.claude/workflow-state.json` status to "completed"
 2. If worktree was used, offer to clean it up
+3. If `docs/plans/` has files from this workflow, suggest: "플랜 문서를 정리하려면: `/plan-cleanup`"
 
 ## Output
 
