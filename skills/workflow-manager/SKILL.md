@@ -13,6 +13,28 @@ You manage workflow YAML definitions for the CCH plugin.
 Skill directory: !`echo ${CLAUDE_SKILL_DIR}`
 Plugin root: !`echo ${CLAUDE_PLUGIN_ROOT:-$(dirname $(dirname ${CLAUDE_SKILL_DIR}))}`
 
+## Input Resolution
+
+입력을 다음 우선순위로 해석:
+
+1. **정확한 서브커맨드** — `list`, `show feature-dev` → 즉시 실행
+2. **자연어** — 아래 NL 맵으로 서브커맨드 매칭 → 대상 이름 추출 후 실행
+3. **매칭 불가** — 도움말 표시
+
+### NL → Command Map
+
+| 자연어 키워드 | 매핑 커맨드 |
+|--------------|------------|
+| 목록, 뭐 있어, 어떤 워크플로우, list all | `list` |
+| 상세, 구조, 보여줘 + 이름, show, detail | `show <name>` |
+| 만들어, 추가, 새로, new, create | `create <name>` |
+| 수정, 변경, 고쳐, edit, modify | `edit <name>` |
+| 삭제, 제거, 없애, delete, remove | `delete <name>` |
+| 검증, 확인, 유효, validate, check | `validate [name]` |
+| 영향, 바꾸면, impact, 뭐가 깨져 | `impact <name>` |
+
+이름 추출: 자연어에서 기존 워크플로우명과 매칭되는 단어를 `<name>`으로 사용. 매칭 불가 시 사용자에게 질문.
+
 ## Command Router
 
 Parse the argument and route to the appropriate handler:
@@ -25,6 +47,7 @@ Parse the argument and route to the appropriate handler:
 | `edit <name>` | Edit Handler |
 | `delete <name>` | Delete Handler |
 | `validate [name]` | Validate Handler |
+| `impact <name>` | Impact Handler — what breaks if this workflow changes |
 | (no argument) | Show help and available commands |
 
 ## Paths
@@ -95,47 +118,82 @@ feature-dev — 기능 개발 워크플로우 (7 steps)
 
 ## Create Handler
 
-### Interview Flow
+### Interview
 
-**Q1. Description**
+#### Context (auto-scan before asking)
+1. Glob existing workflows: `{plugin-root}/skills/workflow/*.yaml` — extract names + step counts
+2. Glob available skills and agents — build component list
+3. Present: "현재 워크플로우 {N}개: {list}. 사용 가능한 컴포넌트 {M}개."
+
+#### Questions
+
+**Q1. Goal**
+- type: open
+- dependency: none
 ```
-워크플로우 "{name}"의 설명을 입력해주세요:
+이 워크플로우의 목적은 무엇인가요? 어떤 작업을 처음부터 끝까지 처리하나요?
 ```
 
-**Q2. Steps**
-Present available components:
+**Q2. Scope**
+- type: open
+- dependency: Q1
+```
+기존 워크플로우와 어떻게 다른가요? 적용 대상이나 범위를 알려주세요:
+```
+기존 워크플로우 중 유사한 것이 있으면 자동 표시합니다.
+
+**Q3. Steps**
+- type: open
+- dependency: Q1, Q2
+- 사용 가능한 컴포넌트를 게이트/에이전트로 구분하여 표시:
 ```
 사용 가능한 게이트 (사용자 승인 필요):
-  • brainstorming — 설계 탐색 및 승인
-  • writing-plans — 태스크 분해 및 승인
-  • finishing-branch — 완료 처리
-  • systematic-debugging — 근본원인 조사
-  • verification — 검증
-  • tdd — TDD 강제
+  {auto-generated list from scan}
 
 사용 가능한 에이전트 (자동 실행):
-  • planner — 플랜 3종 문서 생성
-  • plan-reviewer — 플랜 비판적 리뷰
-  • code-refactor-master — 구현
-  • spec-reviewer — spec 준수 검증
-  • code-quality-reviewer — 코드 품질 리뷰
-  • code-architecture-reviewer — 아키텍처 리뷰
-  • documentation-architect — 문서 정리
-  • web-research-specialist — 기술 조사
-  • refactor-planner — 리팩토링 분석
+  {auto-generated list from scan}
 
-어떤 단계들이 필요한가요? (순서대로 입력, 예: brainstorming, planner+plan-reviewer, writing-plans, code-refactor-master, finishing-branch)
+어떤 단계들이 필요한가요? (순서대로, 예: brainstorming, planner+plan-reviewer, code-refactor-master)
 ```
 
-**Q3. Per Step Configuration**
-For each step, ask:
-- Type: auto-detect (skill = gate, agent = executor, `+` separated = agent-chain)
-- Auto: default true for agents, always manual for gates
-- Cross-cutting: which rules to inject? (default: none)
-- Optional: default false
+**Q4. Per Step Configuration** (Q3의 각 step에 대해 순차적으로)
+- type: select per step
+- dependency: Q3
+- 각 step마다 개별적으로 질문 (한 번에 묶지 않음):
+```
+Step {N}: {component}
+  - Cross-cutting 규칙 주입: [none / tdd / verification / tdd+verification]
+  - Optional 여부: [yes / no]
+  (타입과 auto는 자동 감지: skill=gate, agent=auto)
+```
 
-**Q4. Confirmation**
-Generate YAML preview and ask user to confirm.
+**Q5. Branch & Router**
+- type: multi-input
+- dependency: Q1, Q2
+```
+브랜치 접두사를 지정해주세요 (예: "feature/", "fix/", "refactor/"):
+
+이 워크플로우를 자동 제안할 때 사용할 키워드를 알려주세요 (쉼표 구분):
+  예: "보안 점검, security audit, 취약점, vulnerability"
+```
+키워드 입력 기반으로 `intentPatterns`와 `complexityIndicators`를 자동 생성합니다.
+사용자가 키워드를 제공하지 않으면 Q1, Q2 답변에서 자동 추출합니다.
+
+**Q6. Scenario Test**
+- type: open
+- dependency: Q3, Q4
+```
+이 워크플로우로 처리할 구체적 작업 예시를 1개 알려주세요.
+각 단계에서 어떤 산출물이 나오는지 함께 설명해주시면 됩니다:
+```
+
+#### Validation
+- 첫 번째 또는 마지막 step이 gate인지 확인 (아니면 경고)
+- 참조된 모든 skill/agent가 실제 존재하는지 확인
+- Q6 시나리오가 단계별로 자연스럽게 흐르는지 확인
+
+**Q7. Confirmation**
+YAML 프리뷰를 생성하여 최종 확인을 요청합니다.
 
 ### Post-Create
 
@@ -216,6 +274,63 @@ If errors found, show specific fix recommendations.
 
 ---
 
+## Impact Handler
+
+Answers: **"이 워크플로우를 변경하면 어디가 영향받는가?"**
+
+### Process
+
+1. Read the specified workflow YAML
+2. Extract all referenced components:
+   - Skills used in gate steps
+   - Agents used in executor steps
+   - Agents in chains
+   - Cross-cutting skills
+   - Fix-agents in retry-on-fail
+3. For each component, check if it is shared with other workflows:
+   - Grep all other workflow YAMLs for the same component name
+4. Identify shared vs exclusive components:
+   - **Shared**: 다른 워크플로우에서도 사용 → 이 워크플로우 변경이 공유 컴포넌트 수정을 유발하면 다른 워크플로우에도 영향
+   - **Exclusive**: 이 워크플로우에서만 사용 → 자유롭게 변경 가능
+
+### Output
+
+```
+Impact Analysis: feature-dev
+════════════════════════════
+
+Components used (7):
+  Skills:  brainstorming, writing-plans, finishing-branch
+  Agents:  planner, plan-reviewer, code-refactor-master,
+           code-architecture-reviewer, documentation-architect
+  X-cut:   tdd, verification, git-convention, systematic-debugging
+
+Shared with other workflows:
+  ┌─────────────────────────┬──────────────────────────┐
+  │ Component               │ Also used by             │
+  ├─────────────────────────┼──────────────────────────┤
+  │ finishing-branch        │ bugfix, refactor         │
+  │ code-refactor-master    │ bugfix, refactor         │
+  │ code-architecture-rev.  │ bugfix, refactor         │
+  │ tdd (enforce)           │ bugfix, refactor         │
+  │ verification (enforce)  │ bugfix, refactor         │
+  │ git-convention (enforce)│ bugfix, refactor         │
+  └─────────────────────────┴──────────────────────────┘
+
+Exclusive to this workflow:
+  - brainstorming (gate)
+  - writing-plans (gate)
+  - planner (chain)
+  - plan-reviewer (chain)
+  - documentation-architect (optional)
+  - systematic-debugging (suggest)
+
+Safe to modify: exclusive components — 변경해도 다른 워크플로우에 영향 없음
+Caution needed: shared components — 수정 시 bugfix, refactor 워크플로우도 확인 필요
+```
+
+---
+
 ## Sync Handler (internal, called after create/edit/delete)
 
 After any workflow change, update these files to stay in sync:
@@ -240,6 +355,32 @@ Update the `workflow` skill's keywords to include all workflow names:
 ```
 
 Read the current JSON, update the `skills.workflow.promptTriggers.keywords` array.
+
+### 3. Router Rules (`skills/workflow/workflow-router-rules.json`)
+
+When a workflow is created, add its routing entry:
+```json
+"{name}": {
+  "description": "{description}",
+  "signals": {
+    "keywords": [...from Q5 keywords...],
+    "intentPatterns": [...auto-generated from keywords...],
+    "complexityIndicators": [...auto-generated if applicable...]
+  }
+}
+```
+
+When a workflow is deleted, remove its entry from the `workflows` object.
+
+When edited, update description and signals if workflow scope changed.
+
+### 4. Branch Prefix in project-config.json
+
+Sync `git.branchPrefix` from workflow YAML `branch-prefix` fields:
+1. Read all workflow YAMLs
+2. For each with `branch-prefix` field, ensure `git.branchPrefix.{name}` matches
+3. Remove entries for deleted workflows
+4. This is a bidirectional convenience sync — YAML is the source of truth
 
 ---
 

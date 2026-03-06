@@ -16,7 +16,9 @@
                     "feature development",
                     "기능 개발",
                     "start project",
-                    "프로젝트 시작"
+                    "프로젝트 시작",
+                    "planning-only",
+                    "플래닝"
                 ],
                 "intentPatterns": [
                     "(start|begin|시작).*?(feature|기능|project|프로젝트|workflow|워크플로우)",
@@ -269,9 +271,92 @@
                     "(validate|check|검증|확인).*?(workflow|워크플로우)"
                 ]
             }
-        }
-    },
-    "setup": {
+        },
+        "error-learning": {
+            "type": "guardrail",
+            "enforcement": "suggest",
+            "priority": "high",
+            "description": "Error learning loop — extract lessons from mistakes, check past patterns before coding",
+            "promptTriggers": {
+                "keywords": [
+                    "lesson",
+                    "교훈",
+                    "mistake",
+                    "실수",
+                    "error pattern",
+                    "에러 패턴",
+                    "같은 실수",
+                    "반복",
+                    "repeat",
+                    "learn",
+                    "학습",
+                    "past error",
+                    "이전 에러"
+                ],
+                "intentPatterns": [
+                    "(record|기록|저장).*?(mistake|실수|error|에러|lesson|교훈)",
+                    "(같은|same|반복|repeat).*?(실수|mistake|error|에러|bug|버그)",
+                    "(배우|learn|교훈|lesson).*?(실수|mistake|error|에러)",
+                    "(check|확인|검색).*?(past|이전|과거).*?(error|에러|pattern|패턴)"
+                ]
+            }
+        },
+        "frontend-perf": {
+            "type": "guardrail",
+            "enforcement": "suggest",
+            "priority": "medium",
+            "description": "Frontend performance anti-pattern detection for changed files",
+            "fileTriggers": {
+                "pathPatterns": [
+                    "**/*.tsx",
+                    "**/*.jsx",
+                    "**/components/**",
+                    "**/pages/**",
+                    "**/app/**",
+                    "**/*.css",
+                    "**/*.scss"
+                ],
+                "pathExclusions": [
+                    "**/*.test.*",
+                    "**/*.spec.*",
+                    "**/node_modules/**"
+                ]
+            }
+        },
+        "plan-viewer": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "high",
+            "description": "Project progress dashboard — view plans, tasks, workflow state, and next actions",
+            "promptTriggers": {
+                "keywords": [
+                    "진행 상황",
+                    "progress",
+                    "현황",
+                    "status",
+                    "남은 작업",
+                    "remaining",
+                    "할 일",
+                    "todo",
+                    "다음 작업",
+                    "next task",
+                    "plan",
+                    "플랜",
+                    "태스크",
+                    "task list",
+                    "대시보드",
+                    "dashboard"
+                ],
+                "intentPatterns": [
+                    "(보여|show|확인|check).*?(진행|progress|상황|status|현황)",
+                    "(남은|remaining|할|todo).*?(작업|task|일|work)",
+                    "(다음|next).*?(작업|task|할 일|step)",
+                    "(어디|where).*?(까지|진행|했|done)",
+                    "(뭐|what).*?(남았|left|해야|should|할)"
+                ]
+            }
+        },
+        "setup": {
             "type": "domain",
             "enforcement": "suggest",
             "priority": "high",
@@ -293,6 +378,20 @@
                 ]
             }
         }
+    },
+    "naturalLanguageResolution": {
+        "description": "모든 user-invocable 스킬에 적용되는 자연어 입력 해석 프로토콜",
+        "protocol": [
+            "1. 정확한 명령/인자 매칭 시도 (exact match) → 즉시 실행",
+            "2. 매칭 실패 → 자연어 키워드/의도 분석 → 가장 높은 매칭 서브커맨드로 라우팅",
+            "3. 매칭 불가 → 사용자에게 의도 확인 (available commands 표시)",
+            "4. 서브커맨드 없는 스킬 (자유 컨텍스트형) → 입력 전체를 컨텍스트로 사용"
+        ],
+        "rules": [
+            "NL 매칭은 greedy하지 않음 — 2개 이상 서브커맨드에 동점 매칭 시 사용자에게 확인",
+            "대상 이름 추출: 자연어에서 고유명사/식별자를 추출하여 <name> 인자로 사용",
+            "언어 혼합 허용: 한국어+영어 키워드 모두 매칭 대상"
+        ]
     },
     "notes": {
         "enforcement_types": {
