@@ -158,6 +158,7 @@ function getWorkflowStatus() {
 // --- Rate Limit API ---
 const RATE_CACHE_PATH = join(process.env.HOME || "", ".claude", "hud", ".rate-limit-cache.json");
 const RATE_CACHE_TTL_MS = 30_000;
+const RATE_ERROR_TTL_MS = 60_000;
 
 function readRateCache() {
   try {
@@ -227,8 +228,10 @@ function fetchRateLimits(accessToken) {
 
 async function getRateLimitData() {
   const cache = readRateCache();
-  if (cache && (Date.now() - cache.timestamp < RATE_CACHE_TTL_MS) && !cache.error) {
-    return cache.data;
+  if (cache) {
+    const age = Date.now() - cache.timestamp;
+    const ttl = cache.error ? RATE_ERROR_TTL_MS : RATE_CACHE_TTL_MS;
+    if (age < ttl) return cache.data;
   }
 
   const creds = getOAuthCredentials();
