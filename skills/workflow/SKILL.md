@@ -139,9 +139,44 @@ Track progress in the project's `.claude/workflow-state.json`:
       "userFeedback": "승인"
     },
     "planning": { "status": "in-progress" }
-  }
+  },
+  "history": []
 }
 ```
+
+### Workflow History
+
+완료된 워크플로우 이력을 `history` 배열에 누적한다.
+
+**새 워크플로우 시작 시:**
+1. 현재 state에 `workflow` 필드가 존재하고 모든 step이 completed/skipped이면:
+   - 현재 state를 history entry로 변환하여 `history` 배열에 append
+2. 현재 state에 진행중인 워크플로우가 있으면:
+   - 사용자에게 확인: "이전 워크플로우 '{name}'이 진행중입니다. 종료하고 새로 시작할까요?"
+   - 승인 시 history에 `completedAt: null, status: "abandoned"` 으로 기록
+3. `history` 배열이 없으면 빈 배열로 초기화
+
+**History entry 구조:**
+```json
+{
+  "workflow": "feature-dev",
+  "name": "knowledge-ontology",
+  "startedAt": "2026-03-06T12:00:00Z",
+  "completedAt": "2026-03-06T15:00:00Z",
+  "status": "completed",
+  "summary": "Knowledge Graph Management 기능 구현",
+  "planDocs": [
+    "docs/plans/2026-03-06-knowledge-ontology-design.md",
+    "docs/plans/2026-03-06-knowledge-ontology-plan.md"
+  ]
+}
+```
+
+**History entry 생성 규칙:**
+- `planDocs`: step들의 output 필드에서 `docs/plans/` 경로를 수집
+- `summary`: implementation step의 summary 사용 (없으면 마지막 completed step의 summary)
+- `status`: `"completed"` | `"abandoned"`
+- 동일 name의 history entry가 이미 있으면 추가하지 않음 (중복 방지)
 
 ### Session Continuity Fields
 
