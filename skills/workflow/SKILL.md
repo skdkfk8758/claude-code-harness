@@ -15,24 +15,70 @@ You manage multi-step development workflows defined in YAML.
 Plugin root (for reading agents):
 !`echo ${CLAUDE_PLUGIN_ROOT:-$(dirname $(dirname ${CLAUDE_SKILL_DIR}))}`
 
+Project root (for reading local overrides):
+!`echo ${CLAUDE_PROJECT_ROOT:-.}`
+
 This skill's directory (for reading workflow YAMLs):
 !`echo ${CLAUDE_SKILL_DIR}`
 
+## Resource Resolution
+
+리소스 해석 시 프로젝트 로컬을 먼저 탐색하고, 없으면 플러그인으로 fallback한다.
+로컬 디렉토리가 존재하지 않으면 탐색을 건너뛴다 (하위 호환).
+
+### resolve-agent(name)
+
+1. Check `{project-root}/.claude/agents/{name}.md` — 존재하면 사용
+2. Fallback: `{plugin-root}/agents/{name}.md`
+3. 둘 다 없으면 → error: "Agent '{name}' not found in local (.claude/agents/) or plugin paths"
+
+### resolve-skill(name)
+
+1. Check `{project-root}/.claude/skills/{name}/SKILL.md` — 존재하면 사용
+2. Fallback: `{plugin-root}/skills/{name}/SKILL.md`
+3. 둘 다 없으면 → error: "Skill '{name}' not found in local (.claude/skills/) or plugin paths"
+
+### resolve-workflow(name)
+
+1. Check `{project-root}/.claude/workflows/{name}.yaml` — 존재하면 사용
+2. Fallback: `{plugin-root}/skills/workflow/{name}.yaml`
+3. 둘 다 없으면 → error: "Workflow '{name}' not found in local (.claude/workflows/) or plugin paths"
+
+### Resolution 로그
+
+로컬 리소스를 사용할 때 반드시 알림:
+
+    [workflow] Using local agent: .claude/agents/{name}.md
+    [workflow] Using local skill: .claude/skills/{name}/SKILL.md
+    [workflow] Using local workflow: .claude/workflows/{name}.yaml
+
+플러그인 리소스 사용 시에는 로그 없음 (기존 동작).
+
 ## Available Workflows
 
-이 스킬 디렉토리의 `*.yaml` 파일을 스캔하여 동적으로 목록을 구성한다.
+워크플로우 목록을 두 경로에서 스캔하여 병합한다:
+
+1. 프로젝트 로컬: `{project-root}/.claude/workflows/*.yaml`
+2. 플러그인: 이 스킬 디렉토리의 `*.yaml` 파일
+
+병합 규칙:
+- 같은 파일명이면 로컬 우선 (오버라이드)
+- 나머지는 합집합
+- 로컬 워크플로우에는 `(local)` 표시
+
 각 YAML의 `name`과 `description` 필드를 읽어 사용자에게 표시:
 
 ```
 사용 가능한 워크플로우:
   1. {name} — {description}
-  2. {name} — {description}
+  2. {name} (local) — {description}
   ...
 
 번호 또는 이름을 입력하세요:
 ```
 
 YAML 파일이 없거나 읽기 실패 시: "등록된 워크플로우가 없습니다."
+로컬 디렉토리가 없으면 플러그인만 스캔 (기존 동작).
 
 ## Input Resolution
 
@@ -40,7 +86,7 @@ YAML 파일이 없거나 읽기 실패 시: "등록된 워크플로우가 없습
 
 | 우선순위 | 입력 예시 | 동작 |
 |----------|----------|------|
-| 1. 정확한 YAML명 | `/workflow feature-dev` | 즉시 로드 |
+| 1. 정확한 YAML명 | `/workflow feature-dev` | `resolve-workflow({name})`로 로드 |
 | 2. YAML명 + resume | `/workflow feature-dev resume` | 상태 복원 후 재개 |
 | 3. 자연어 (YAML명 없음) | `/workflow 사용자 인증 기능 개발해줘` | 라우터 분류 → 워크플로우 제안 |
 | 4. 인자 없음 | `/workflow` | 목록 표시 + 선택 요청 |
@@ -64,7 +110,7 @@ YAML 파일이 없거나 읽기 실패 시: "등록된 워크플로우가 없습
 ## Startup
 
 1. Input Resolution에 따라 워크플로우를 결정
-2. Read the workflow YAML file (e.g., `feature-dev.yaml` in this skill's directory)
+2. Use `resolve-workflow({name})` to load the workflow YAML file
 3. Read current state from `.claude/workflow-state.json` in the project root.
    If `resume` is specified or state file exists, detect progress and offer to continue.
 
@@ -255,8 +301,7 @@ For each step in the YAML:
 
 ### `type: agent` (Executor — automatic)
 1. Resolve the agent prompt file path:
-   - Use the plugin root path discovered above
-   - Read `{plugin-root}/agents/{agent-name}.md`
+   - Use `resolve-agent({agent-name})` (see Resource Resolution)
 2. Build the dispatch prompt:
    - Include the agent's full prompt content
    - Append context: previous step outputs (read the files)
@@ -357,7 +402,7 @@ Built-in condition checks:
 ## Cross-Cutting Rules
 
 When a step specifies `cross-cutting`:
-1. Read each skill from `{plugin-root}/skills/{name}/SKILL.md`
+1. Use `resolve-skill({name})` for each skill (see Resource Resolution)
 2. Extract the core rules section
 3. Append to the agent dispatch prompt with header:
    ```
@@ -381,7 +426,7 @@ cross-cutting:
 
 **`enforce`**: After the agent returns DONE, the orchestrator dynamically loads enforcement logic from the cross-cutting skill itself:
 
-1. Read `{plugin-root}/skills/{skill-name}/SKILL.md`
+1. Use `resolve-skill({skill-name})` (see Resource Resolution)
 2. Find the `## Enforcement Verification` section
 3. Execute the checks described in that section:
    - **Pre-Step Setup**: If defined, execute before dispatching the agent (e.g., recording commit hash)
