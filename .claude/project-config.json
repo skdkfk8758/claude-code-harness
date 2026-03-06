@@ -1,0 +1,34 @@
+{
+  "git": {
+    "commitConvention": "conventional",
+    "scopeRequired": true,
+    "allowedTypes": ["feat", "fix", "refactor", "chore", "docs", "test", "ci", "perf", "style", "build"],
+    "commitTiming": "per-task",
+    "branchPrefix": {
+      "feature-dev": "feature/",
+      "bugfix": "fix/",
+      "refactor": "refactor/",
+      "quick-fix": "fix/"
+    },
+    "requireBranch": true
+  },
+  "pr": {
+    "bodyStyle": "summary-with-links",
+    "includeSections": ["decisions", "summary", "review"],
+    "linkToPlanDocs": true
+  },
+  "release": {
+    "changelogFormat": "conventional",
+    "versionStrategy": "semver",
+    "versionFile": "auto",
+    "createGithubRelease": true,
+    "monorepo": false,
+    "typeToSection": {
+      "feat": "Features",
+      "fix": "Bug Fixes",
+      "refactor": "Refactoring",
+      "perf": "Performance",
+      "docs": "Documentation"
+    }
+  }
+}

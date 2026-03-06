@@ -87,6 +87,7 @@ If approved:
 2. Check project `.gitignore` for required entries:
    - `.claude/settings.local.json` — should be ignored (local preferences)
    - `.claude/workflow-state.json` — should be ignored (session state)
+   - `.claude/knowledge-graph.json` — should be ignored (knowledge ontology, session-local)
    - `.DS_Store` — should be ignored
 3. If missing entries found, ask user:
    ```
@@ -103,7 +104,7 @@ If approved:
 2. Glob agents: `{plugin-root}/agents/*.md`
    - Expected: 10
 3. Glob workflow YAMLs: `{plugin-root}/skills/workflow/*.yaml`
-   - Expected: 3 (feature-dev, bugfix, refactor)
+   - Expected: 6 (feature-dev, bugfix, refactor, quick-fix, planning-only, skill-creation)
 4. Read `{plugin-root}/.claude-plugin/plugin.json` for version
 5. Report any missing components
 
@@ -116,7 +117,7 @@ If approved:
 ║  HUD         ✓ installed            ║
 ║  Skills      ✓ 10/10               ║
 ║  Agents      ✓ 10/10               ║
-║  Workflows   ✓ 3/3                 ║
+║  Workflows   ✓ 6/6                 ║
 ║  v2 cleanup  ✓ done  (or N/A)      ║
 ║  .gitignore  ✓ valid               ║
 ╠══════════════════════════════════════╣

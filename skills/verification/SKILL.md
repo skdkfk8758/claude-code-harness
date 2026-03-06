@@ -90,6 +90,25 @@ If you catch yourself doing any of these, you are about to make a false claim:
 - Claiming "no regressions" without running the full suite
 - Using results from a PREVIOUS session as evidence for THIS session
 
+## Enforcement Verification
+
+When this skill is used with `enforcement: enforce` in a workflow step, the orchestrator verifies compliance by reading the agent's output. The following checks are performed automatically:
+
+### Evidence Required
+1. **Command execution**: Agent output must contain actual test/build command execution (terminal output with pass/fail counts)
+2. **Result confirmation**: Output must show explicit pass/fail status, not just "tests pass" text without evidence
+
+### Pass Criteria
+- Test runner output with pass/fail counts is present in agent output
+- No unchecked failures or skipped suites
+
+### Failure Response
+If evidence is missing, re-dispatch the agent with:
+```
+verification 규칙 미준수: 테스트/빌드 실행 증거가 부족합니다.
+실제 명령을 실행하고, 전체 출력 결과를 포함하여 재보고하세요.
+```
+
 ## Rules
 - This is not optional — it applies to every agent and skill
 - If you cannot run verification (no test command, no build), state that explicitly instead of claiming success

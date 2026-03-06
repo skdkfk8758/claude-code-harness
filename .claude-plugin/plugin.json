@@ -5,6 +5,5 @@
   "author": {
     "name": "carpdm"
   },
-  "skills": "./skills/",
-  "agents": "./agents/"
+  "skills": "./skills/"
 }

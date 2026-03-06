@@ -19,6 +19,7 @@ You MUST complete all 4 phases before proposing any fix. Do not skip phases. Do 
 2. Reproduce the error — run the failing command yourself
 3. Identify the boundary: where does correct behavior end and incorrect behavior begin?
 4. Check recent changes: `git log --oneline -10` and `git diff`
+5. **Complete Enumeration** — 관련 증거를 모두 나열. "기타 요인도 있을 수 있음", "등등" 금지. 열거하지 않은 것은 조사하지 않은 것
 
 ### Trace the Flow
 1. Start from the error location and trace backwards

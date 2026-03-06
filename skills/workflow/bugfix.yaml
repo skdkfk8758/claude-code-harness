@@ -1,5 +1,6 @@
 name: bugfix
 description: 버그 수정 워크플로우 — 근본원인 조사부터 검증까지
+branch-prefix: "fix/"
 
 steps:
   - id: investigation
@@ -17,8 +18,12 @@ steps:
   - id: planning
     type: agent
     agent: planner
-    description: 수정 계획 문서화 (영향 범위, 사이드이펙트, 테스트 전략)
-    output: docs/plans/{date}-{name}-plan.md
+    description: |
+      수정 계획 문서화 (영향 범위, 사이드이펙트, 테스트 전략)
+      Task Overview 포함 — 수정에 필요한 태스크 개요
+    output:
+      - docs/plans/{date}-{name}-plan.md
+      - docs/plans/{date}-{name}-context.md
     auto: true
 
   - id: implementation
@@ -27,8 +32,21 @@ steps:
     description: TDD 기반 수정 — 실패 테스트 작성 → 수정 → 통과 확인
     input: docs/plans/{date}-{name}-plan.md
     cross-cutting:
-      - tdd
-      - verification
+      - name: tdd
+        enforcement: enforce
+      - name: verification
+        enforcement: enforce
+      - name: git-convention
+        enforcement: enforce
+      - name: error-learning
+        enforcement: enforce
+    review-pipeline:
+      batch-size: 3
+      reviewers:
+        - agent: spec-reviewer
+        - agent: code-quality-reviewer
+      fix-agent: code-refactor-master
+      max-retries-per-reviewer: 1
     auto: true
 
   - id: review
@@ -42,6 +60,37 @@ steps:
       fix-agent: code-refactor-master
       max-retries: 2
       trigger-status: "NEEDS_CHANGES"
+
+  - id: code-optimization
+    type: conditional
+    condition:
+      check: step-status
+      step-id: review
+      expected: "PASS_WITH_NOTES"
+      operator: "=="
+    then:
+      agent: code-refactor-master
+      id: optimize
+    description: |
+      아키텍처 리뷰에서 advisory note가 있을 때만 최적화 수행.
+      리뷰 리포트의 advisory 항목 기반 중복 제거, 단순화.
+      PASS면 스킵.
+    cross-cutting:
+      - name: verification
+        enforcement: enforce
+      - name: git-convention
+        enforcement: enforce
+    auto: true
+
+  - id: lesson-extraction
+    type: skill
+    skill: error-learning
+    description: |
+      수정 과정에서 발견된 에러 패턴을 KB에 기록.
+      investigation.md + 실제 수정 diff를 분석하여 교훈 추출.
+    input: docs/plans/{date}-{name}-investigation.md
+    output: docs/error-patterns/{category}-{id}.md
+    auto: true
 
   - id: completion
     type: skill

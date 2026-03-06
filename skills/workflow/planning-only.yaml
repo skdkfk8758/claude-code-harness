@@ -1,0 +1,31 @@
+name: planning-only
+description: 설계와 플래닝만 수행하는 경량 워크플로우 — 구현 없이 계획 문서 산출
+
+steps:
+  - id: design
+    type: skill
+    skill: brainstorming
+    description: 요구사항 분석, 설계 옵션 비교, spec 문서 작성
+    output: docs/plans/{date}-{name}-design.md
+    gate: user-approval
+
+  - id: planning
+    type: agent-chain
+    agents:
+      - planner
+      - plan-reviewer
+    description: |
+      승인된 설계 기반 전략+컨텍스트 문서 생성
+      plan-reviewer가 비판적 리뷰 후 APPROVED/NEEDS_REVISION 판정
+    output:
+      - docs/plans/{date}-{name}-plan.md
+      - docs/plans/{date}-{name}-context.md
+    auto: true
+
+  - id: task-breakdown
+    type: skill
+    skill: writing-plans
+    description: 플랜을 2-5분 단위 태스크로 분해
+    input: docs/plans/{date}-{name}-plan.md
+    output: docs/plans/{date}-{name}-tasks.md
+    gate: user-approval

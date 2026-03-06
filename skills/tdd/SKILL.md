@@ -35,6 +35,30 @@ If you find yourself writing production code before a test exists, STOP. Delete 
 3. Remove duplication, improve naming, extract abstractions
 4. Only refactor if there's a clear benefit
 
+## Test Structure: AAA Pattern
+
+Every test follows three phases separated by blank lines:
+
+| Phase | What | Example |
+|-------|------|---------|
+| **Arrange** | Set up test data, mocks, fixtures | `const user = createTestUser()` |
+| **Act** | Execute the code under test | `const result = await service.getUser(id)` |
+| **Assert** | Verify expected outcome | `expect(result.name).toBe('test')` |
+
+If a single test has multiple Act/Assert blocks, split it into separate tests.
+
+## Test Naming Convention
+
+Pattern: `test_<what>_<when>_<expected>` (or framework equivalent)
+
+| Bad | Good |
+|-----|------|
+| `test1`, `it works` | `test_create_user_with_valid_data_returns_user` |
+| `test_service` | `test_get_user_when_not_found_raises_404` |
+| `should work correctly` | `adds_two_positive_numbers_returns_sum` |
+
+The name must describe the behavior under test — not the implementation detail.
+
 ## Anti-Patterns to Avoid
 
 | Anti-Pattern | What to do instead |
@@ -46,6 +70,9 @@ If you find yourself writing production code before a test exists, STOP. Delete 
 | Testing trivial getters/setters | Test meaningful behavior |
 | One giant test per feature | Many small focused tests |
 | Ignoring/skipping failing tests | Fix or remove them |
+| Testing only the happy path | Test error cases, edge cases, boundary conditions |
+| No test structure (wall of code) | Separate Arrange/Act/Assert with blank lines |
+| Vague test names (`test1`, `it works`) | Use `test_<what>_<when>_<expected>` pattern |
 
 ## Common Rationalizations (and why they're wrong)
 
@@ -123,6 +150,26 @@ Stop immediately if you notice:
 - Tests that only test the happy path
 - `test.skip()` or `xit()` anywhere in the codebase
 - Test names that don't describe behavior ("test1", "it works")
+
+## Enforcement Verification
+
+When this skill is used with `enforcement: enforce` in a workflow step, the orchestrator verifies compliance by reading the agent's output. The following checks are performed automatically:
+
+### Evidence Required
+1. **RED phase**: Agent output must contain failing test output (test runner error/failure messages)
+2. **GREEN phase**: Agent output must contain passing test output after implementation
+3. **Cycle completeness**: Each task must show both RED and GREEN evidence in sequence
+
+### Pass Criteria
+- At least one RED-GREEN cycle per task is evidenced in agent output
+- Test runner output (not just assertions in code) is present
+
+### Failure Response
+If evidence is missing, re-dispatch the agent with:
+```
+TDD 규칙 미준수: RED-GREEN-REFACTOR 사이클 증거가 부족합니다.
+각 태스크에 대해 (1) 실패하는 테스트 실행 결과, (2) 통과하는 테스트 실행 결과를 포함하여 재보고하세요.
+```
 
 ## Integration with Workflow
 
