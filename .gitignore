@@ -4,9 +4,11 @@ Thumbs.db
 
 # Dev tools
 .serena/
+.omc/
 .claude/skills/
 .claude/settings.local.json
 .claude/workflow-state.json
+.claude/knowledge-graph.json
 
 # Build / Runtime
 dist/
@@ -16,6 +18,9 @@ node_modules/
 *.swp
 *.swo
 *~
+
+# Backlog (local only)
+backlog/
 
 # Logs
 *.log
