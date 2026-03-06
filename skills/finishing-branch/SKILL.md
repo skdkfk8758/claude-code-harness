@@ -48,10 +48,46 @@ git checkout main && git merge <branch>
 ```
 
 **Option 2 (PR)**:
-```bash
-git push -u origin <branch>
-gh pr create --title "<title>" --body "<body>"
-```
+
+1. Read `.claude/project-config.json` for PR settings
+2. Build PR body based on `pr.bodyStyle`:
+
+   **`summary-with-links`** (default):
+   - Read `.claude/workflow-state.json`
+   - Extract `summary` and `decisions` from each completed step
+   - Format:
+     ```markdown
+     ## Summary
+     {workflow description from YAML}
+
+     ## Key Decisions
+     {bullet list of decisions from each step}
+
+     ## Review
+     {summary from review step, if exists}
+
+     ## Plan Documents
+     - [Design](docs/plans/{date}-{name}-design.md)
+     - [Plan](docs/plans/{date}-{name}-plan.md)
+     - [Review](docs/plans/{date}-{name}-review.md)
+
+     ## Test Results
+     {test pass/fail summary from verification}
+     ```
+   - Only include sections that have data (skip empty ones)
+   - Link paths are relative to repo root
+
+3. Execute:
+   ```bash
+   git push -u origin <branch>
+   gh pr create --title "<title>" --body "<generated-body>"
+   ```
+
+4. If `workflow-state.json` not found (non-workflow usage), fall back to commit log:
+   ```bash
+   gh pr create --title "<title>" --body "$(git log --oneline main..HEAD)"
+   ```
+
 Return PR URL.
 
 **Option 3 (Keep)**:

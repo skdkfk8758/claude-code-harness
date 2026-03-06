@@ -16,12 +16,15 @@ Skill directory: !`echo ${CLAUDE_SKILL_DIR}`
 
 Read the plan document provided as argument (or find the latest `*-plan.md` in `docs/plans/`).
 
+The plan document contains a **Task Overview** table with task descriptions, sizes, and dependencies.
+Use this table as the basis for detailed task decomposition — do NOT re-invent the task list from scratch.
+
 ## Process
 
 ### Phase 1: Scope Check
-1. Read the plan document thoroughly
-2. If multi-subsystem, decompose into sub-plans first
-3. Map the file structure affected (Glob existing files)
+1. Read the plan document thoroughly, especially the Task Overview table
+2. Verify each task in the overview against the codebase (Glob existing files)
+3. If multi-subsystem, decompose into sub-plans first
 4. List ambiguities — ask user to clarify
 
 ### Phase 2: Task Decomposition

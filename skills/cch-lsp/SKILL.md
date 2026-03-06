@@ -10,9 +10,28 @@ argument-hint: [scan|add <language>|status|remove <language>]
 
 프로젝트 파일을 스캔하여 필요한 언어 서버를 자동 감지하고, 사용자 확인 후 설치합니다.
 
+## Input Resolution
+
+입력을 다음 우선순위로 해석:
+
+1. **정확한 서브커맨드** — `scan`, `add typescript`, `status`, `remove python` → 즉시 실행
+2. **자연어** — 아래 NL 맵으로 서브커맨드 매칭 → 언어 이름 추출 후 실행
+3. **인자 없음** — Full Flow 실행
+
+### NL → Command Map
+
+| 자연어 키워드 | 매핑 커맨드 |
+|--------------|------------|
+| 스캔, 검색, 뭐 있어, 감지, detect, find | `scan` |
+| 추가, 설치, 넣어, install, add, 셋업 | `add <language>` |
+| 상태, 현재, 설치돼있어, status, check | `status` |
+| 제거, 삭제, 없애, remove, uninstall | `remove <language>` |
+
+언어 추출: "타입스크립트 추가해줘" → `add typescript`, "파이썬 LSP 설치" → `add python`. 자연어의 언어명을 Serena ID로 매핑 (TypeScript→typescript, 파이썬→python, 고→go 등).
+
 ## 서브커맨드 라우팅
 
-인자를 파싱하여 해당 섹션으로 이동합니다:
+Input Resolution 결과를 기반으로 해당 섹션으로 이동합니다:
 - 인자 없음 → **Full Flow** 실행
 - `scan` → **Step 1 (SCAN)** 만 실행 후 종료
 - `add <language>` → **Add Flow** 실행
@@ -77,25 +96,38 @@ encoding: "utf-8"
 
 ### Step 3 — INTERVIEW: 사용자 확인
 
+#### Context (auto — Step 1, 2에서 이미 수집됨)
+- 감지된 언어 + 파일 수
+- 이미 설정된 언어
+- 신규 필요 언어
+
 신규 필요 언어가 없으면 "모든 감지된 언어가 이미 설정되어 있습니다" 출력 후 종료합니다.
 
-신규 필요 언어가 있으면 AskUserQuestion으로 설치할 언어를 multi-select합니다:
+#### Questions
 
+**Q1. Language Selection**
+- type: multi-select
+- dependency: none (Step 1-2 결과 기반)
 ```
-질문: "다음 언어의 LSP 서버를 설치하시겠습니까?"
-multiSelect: true
-옵션: 감지된 신규 언어 각각 (파일 수 포함)
-  예: "TypeScript (42 files)" → typescript
-      "Python (3 files)" → python
+다음 언어의 LSP 서버를 설치하시겠습니까?
+  {auto-generated from scan, 파일 수 포함}
+  예: [ ] TypeScript (42 files)
+      [ ] Python (3 files)
 ```
 
-대안이 있는 언어(Python)를 선택한 경우 추가 질문:
+**Q2. Alternative Selection** (조건부 — Q1에서 대안이 있는 언어 선택 시에만)
+- type: select
+- dependency: Q1
+- 대안이 있는 언어마다 개별 질문 (한 번에 묶지 않음):
 ```
-질문: "Python LSP 서버를 선택해주세요"
-옵션:
-  - "python-lsp-server (pylsp) — 플러그인 확장 가능" → python
-  - "jedi-language-server — 가벼움" → python_jedi
+Python LSP 서버를 선택해주세요:
+  1. python-lsp-server (pylsp) — 플러그인 확장 가능
+  2. jedi-language-server — 가벼움
 ```
+
+#### Validation
+- 선택된 언어의 패키지 매니저가 설치되어 있는지 사전 확인
+- 문제가 있으면 설치 전에 경고: "{tool} 미설치 — {language} LSP 설치가 실패할 수 있습니다"
 
 ### Step 4 — INSTALL: LSP 서버 설치
 
