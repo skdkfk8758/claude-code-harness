@@ -23,6 +23,7 @@ Project root:
 | Source | Path | Content |
 |--------|------|---------|
 | Workflow State | `.claude/workflow-state.json` | step별 status, summary, decisions |
+| Workflow History | `.claude/workflow-state.json` → `history` 배열 | 완료/중단된 워크플로우 이력 |
 | Task Documents | `docs/plans/*-tasks.md` | 체크박스 기반 태스크 목록 |
 | Plan Documents | `docs/plans/*-plan.md` | 전략 + 태스크 개요 |
 | Design Documents | `docs/plans/*-design.md` | 설계 결정사항 |
@@ -49,8 +50,17 @@ Project root:
 ### 1. Data Collection
 
 1. Read `.claude/workflow-state.json` — 없으면 "활성 워크플로우 없음" 표시
-2. Glob `docs/plans/*-tasks.md` — 가장 최근 파일 선택 (날짜 기준)
-3. Glob `docs/plans/*-plan.md`, `docs/plans/*-design.md` — 경로만 수집
+2. Extract `history` 배열 from workflow-state.json (없으면 빈 배열)
+3. Glob `docs/plans/*-tasks.md` — 가장 최근 파일 선택 (날짜 기준)
+4. Glob `docs/plans/*-plan.md`, `docs/plans/*-design.md` — 경로만 수집
+5. **Plan Status 판별**: 각 plan/design 문서에 대해 다음 순서로 상태 결정:
+   a. 현재 워크플로우의 name과 문서 파일명의 name 부분이 매칭 → `활성`
+   b. history 배열의 `planDocs`에 해당 문서 경로가 포함 → `완료` (history의 status 표시)
+   c. history 배열의 `name`과 문서 파일명의 name 부분이 매칭 → `완료`
+   d. 위 어디에도 매칭 안 됨 → `미착수`
+
+   **파일명에서 name 추출**: `{date}-{name}-{type}.md` 패턴에서 name 부분 추출
+   예: `2026-03-06-knowledge-ontology-plan.md` → name: `knowledge-ontology`
 
 ### 2. Mode Execution
 
@@ -83,6 +93,11 @@ Plan Documents
   • design:  {path}
   • plan:    {path}
   • tasks:   {path}
+
+Other Plans
+──────────────────────────────────────────
+  ✓ {name} — 완료 ({completedAt})    ← history에서 매칭
+  ○ {name} — 미착수                   ← 매칭 없음
 
 Next Action
 ──────────────────────────────────────────
