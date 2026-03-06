@@ -1,0 +1,125 @@
+{
+  "version": "1.0",
+  "description": "워크플로우 라우터 분류 규칙. 사용자 입력을 분석하여 적합한 워크플로우를 제안한다.",
+  "config": {
+    "minSignalCount": 2,
+    "suggestionStyle": "soft",
+    "skipKeywords": ["이번에는 패스", "워크플로우 없이", "그냥 해줘", "skip workflow"]
+  },
+  "excludePatterns": [
+    "(뭐야|뭔지|설명|explain|what is|how does|show me|보여줘|알려줘)",
+    "(설치|install|setup|설정|환경변수|config)",
+    "(테스트 돌려|빌드해|커밋해|run test|build|commit)",
+    "(목록|list|ls|show files)"
+  ],
+  "workflows": {
+    "feature-dev": {
+      "description": "설계가 필요한 새 기능 개발",
+      "signals": {
+        "keywords": [
+          "기능 추가", "새로운 기능", "feature", "new feature",
+          "구현해줘", "개발해줘", "만들어줘", "시스템 구축",
+          "모듈 추가", "API 추가", "컴포넌트 추가"
+        ],
+        "intentPatterns": [
+          "(새|new|추가|add).*?(기능|feature|모듈|module|시스템|system)",
+          "(설계|design|architect).*?(필요|need|해야|should)",
+          "(구현|implement|개발|develop|build).*?(전체|full|complete|새로운|new)"
+        ],
+        "complexityIndicators": [
+          "여러 파일", "multiple files", "전체적으로", "아키텍처",
+          "설계부터", "from scratch", "처음부터"
+        ]
+      }
+    },
+    "bugfix": {
+      "description": "버그 수정 및 에러 해결",
+      "signals": {
+        "keywords": [
+          "버그", "bug", "에러", "error", "오류",
+          "안 됨", "안돼", "doesn't work", "not working",
+          "실패", "fail", "깨진", "broken", "crash"
+        ],
+        "intentPatterns": [
+          "(수정|fix|고치|debug|디버그).*?(버그|bug|에러|error|오류)",
+          "(왜|why).*?(안 돼|안됨|실패|fail|error|에러|작동)",
+          "(테스트|test).*?(실패|fail|broken|깨진)"
+        ],
+        "complexityIndicators": [
+          "원인 모름", "재현 안 됨", "간헐적", "intermittent",
+          "여러 곳에서", "root cause"
+        ]
+      }
+    },
+    "refactor": {
+      "description": "기능 변경 없이 코드 구조 개선",
+      "signals": {
+        "keywords": [
+          "리팩토링", "refactor", "정리", "clean up",
+          "구조 변경", "restructure", "분리", "extract",
+          "개선", "improve", "모듈화"
+        ],
+        "intentPatterns": [
+          "(리팩토링|refactor|정리|clean).*?(코드|code|구조|structure)",
+          "(분리|extract|split).*?(함수|function|클래스|class|모듈|module)",
+          "(구조|structure).*?(변경|change|개선|improve)"
+        ],
+        "complexityIndicators": [
+          "전체적으로", "대규모", "여러 파일", "아키텍처 레벨",
+          "디렉토리 구조", "의존성 정리"
+        ]
+      }
+    },
+    "skill-creation": {
+      "description": "스킬 또는 에이전트 생성",
+      "signals": {
+        "keywords": [
+          "스킬 생성", "스킬 추가", "에이전트 생성", "에이전트 추가",
+          "create skill", "create agent", "new skill", "new agent",
+          "스킬 만들어", "에이전트 만들어"
+        ],
+        "intentPatterns": [
+          "(스킬|skill|에이전트|agent).*?(생성|create|추가|add|만들|make)",
+          "(새|new).*?(스킬|skill|에이전트|agent)"
+        ]
+      }
+    },
+    "quick-fix": {
+      "description": "간단한 수정이나 소규모 변경",
+      "signals": {
+        "keywords": [
+          "간단하게", "하나만", "빠르게", "이것만",
+          "수정", "변경", "바꿔줘", "고쳐줘",
+          "추가해줘", "삭제해줘", "업데이트"
+        ],
+        "intentPatterns": [
+          "(간단|simple|빠르|quick).*?(수정|fix|변경|change)",
+          "(하나|한 개|one|single).*?(파일|file|함수|function)",
+          "(이것만|just|only).*?(바꿔|수정|변경|fix)"
+        ],
+        "simplicityIndicators": [
+          "한 줄", "one line", "단일 파일", "single file",
+          "이름 변경", "rename", "오타", "typo"
+        ]
+      }
+    }
+  },
+  "classificationLogic": {
+    "description": "분류 우선순위 및 로직",
+    "rules": [
+      "1. excludePatterns 매칭 시 → 워크플로우 제안 안 함",
+      "2. skipKeywords 매칭 시 → 워크플로우 제안 안 함",
+      "3. 각 워크플로우별 signals 매칭 점수 계산 (keyword=1, intent=2, complexity/simplicity=1)",
+      "4. quick-fix의 simplicityIndicators 매칭 시 → 다른 워크플로우 점수에서 -2",
+      "5. 최고 점수 워크플로우가 minSignalCount 이상이면 제안",
+      "6. 동점 시 → 사용자에게 선택지 제시"
+    ]
+  },
+  "suggestionTemplate": {
+    "soft": "이 작업은 `{workflow}` 워크플로우가 적합해 보입니다. `/workflow {workflow}`로 시작하시겠어요? (무시하고 진행해도 됩니다)"
+  },
+  "notes": {
+    "customization": "keywords, intentPatterns, complexityIndicators는 프로젝트에 맞게 자유롭게 추가/수정 가능",
+    "newWorkflow": "새 워크플로우 추가 시 workflows 객체에 동일 구조로 항목 추가"
+  }
+}

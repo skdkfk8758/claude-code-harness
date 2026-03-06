@@ -1,0 +1,64 @@
+name: quick-fix
+description: 간단한 수정 워크플로우 — 구현부터 검증까지 최소 단계
+branch-prefix: "fix/"
+
+steps:
+  - id: implementation
+    type: agent
+    agent: code-refactor-master
+    description: |
+      단일 파일/함수 수준 수정 또는 소규모 기능 추가
+      태스크 문서 없이 사용자 요청 기반 직접 구현
+    cross-cutting:
+      - name: tdd
+        enforcement: enforce
+      - name: verification
+        enforcement: enforce
+      - name: git-convention
+        enforcement: enforce
+    review-pipeline:
+      batch-size: 3
+      reviewers:
+        - agent: spec-reviewer
+        - agent: code-quality-reviewer
+      fix-agent: code-refactor-master
+      max-retries-per-reviewer: 1
+    auto: true
+
+  - id: review
+    type: agent
+    agent: code-architecture-reviewer
+    description: |
+      변경점 아키텍처 리뷰
+      검증 드리프트 탐지 포함
+    auto: true
+    retry-on-fail:
+      fix-agent: code-refactor-master
+      max-retries: 1
+      trigger-status: "NEEDS_CHANGES"
+
+  - id: code-optimization
+    type: conditional
+    condition:
+      check: step-status
+      step-id: review
+      expected: "PASS_WITH_NOTES"
+      operator: "=="
+    then:
+      agent: code-refactor-master
+      id: optimize
+    description: |
+      리뷰에서 advisory note가 있을 때만 최적화 수행.
+      PASS면 스킵.
+    cross-cutting:
+      - name: verification
+        enforcement: enforce
+      - name: git-convention
+        enforcement: enforce
+    auto: true
+
+  - id: completion
+    type: skill
+    skill: finishing-branch
+    description: 테스트 통과 확인 후 merge/PR/keep/discard 선택
+    gate: user-approval

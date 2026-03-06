@@ -1,5 +1,6 @@
 name: feature-development
 description: 기능 개발 워크플로우 — 설계부터 문서화까지
+branch-prefix: "feature/"
 
 steps:
   - id: design
@@ -15,13 +16,12 @@ steps:
       - planner
       - plan-reviewer
     description: |
-      승인된 설계 기반 3종 문서 생성 (전략/컨텍스트/체크리스트)
+      승인된 설계 기반 2종 문서 생성 (전략+태스크개요 / 컨텍스트)
       plan-reviewer가 비판적 리뷰 후 APPROVED/NEEDS_REVISION 판정
       NEEDS_REVISION 시 planner 재호출
     output:
       - docs/plans/{date}-{name}-plan.md
       - docs/plans/{date}-{name}-context.md
-      - docs/plans/{date}-{name}-tasks.md
     auto: true
 
   - id: task-breakdown
@@ -37,12 +37,28 @@ steps:
     agent: code-refactor-master
     description: |
       배치 실행 (3태스크/배치, 배치 간 체크포인트)
-      태스크당 2단계 리뷰: spec-reviewer → code-quality-reviewer
+      배치별 리뷰 파이프라인: spec-reviewer → code-quality-reviewer
     input: docs/plans/{date}-{name}-tasks.md
     cross-cutting:
-      - tdd
-      - verification
-      - systematic-debugging
+      - name: tdd
+        enforcement: enforce
+      - name: verification
+        enforcement: enforce
+      - name: git-convention
+        enforcement: enforce
+      - name: systematic-debugging
+        enforcement: suggest
+      - name: error-learning
+        enforcement: suggest
+      - name: frontend-perf
+        enforcement: suggest
+    review-pipeline:
+      batch-size: 3
+      reviewers:
+        - agent: spec-reviewer
+        - agent: code-quality-reviewer
+      fix-agent: code-refactor-master
+      max-retries-per-reviewer: 1
     auto: true
 
   - id: review
@@ -57,6 +73,27 @@ steps:
       fix-agent: code-refactor-master
       max-retries: 2
       trigger-status: "NEEDS_CHANGES"
+
+  - id: code-optimization
+    type: conditional
+    condition:
+      check: step-status
+      step-id: review
+      expected: "PASS_WITH_NOTES"
+      operator: "=="
+    then:
+      agent: code-refactor-master
+      id: optimize
+    description: |
+      아키텍처 리뷰에서 advisory note가 있을 때만 전역 최적화 수행.
+      리뷰 리포트의 advisory 항목을 입력으로 받아 중복 제거, 단순화, 재사용성 개선.
+      PASS(문제 없음)면 스킵.
+    cross-cutting:
+      - name: verification
+        enforcement: enforce
+      - name: git-convention
+        enforcement: enforce
+    auto: true
 
   - id: documentation
     type: agent
