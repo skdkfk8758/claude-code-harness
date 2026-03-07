@@ -7,7 +7,7 @@ steps:
     skill: brainstorming
     description: 요구사항 분석, 설계 옵션 비교, spec 문서 작성
     output: docs/plans/{date}-{name}-design.md
-    gate: user-approval
+    gate: approval
 
   - id: planning
     type: agent-chain
@@ -28,4 +28,4 @@ steps:
     description: 플랜을 2-5분 단위 태스크로 분해
     input: docs/plans/{date}-{name}-plan.md
     output: docs/plans/{date}-{name}-tasks.md
-    gate: user-approval
+    gate: checkpoint

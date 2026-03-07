@@ -61,4 +61,4 @@ steps:
     type: skill
     skill: finishing-branch
     description: 테스트 통과 확인 후 merge/PR/keep/discard 선택
-    gate: user-approval
+    gate: approval

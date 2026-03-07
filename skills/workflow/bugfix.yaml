@@ -13,7 +13,7 @@ steps:
       3. Hypothesis Formation — 가설 수립 및 검증
       4. Targeted Fix — 근본원인 기반 최소 수정
     output: docs/plans/{date}-{name}-investigation.md
-    gate: user-approval
+    gate: approval
 
   - id: planning
     type: agent
@@ -90,10 +90,10 @@ steps:
       investigation.md + 실제 수정 diff를 분석하여 교훈 추출.
     input: docs/plans/{date}-{name}-investigation.md
     output: docs/error-patterns/{category}-{id}.md
-    auto: true
+    gate: auto
 
   - id: completion
     type: skill
     skill: finishing-branch
     description: 테스트 통과 확인 후 merge/PR/keep/discard 선택
-    gate: user-approval
+    gate: approval
