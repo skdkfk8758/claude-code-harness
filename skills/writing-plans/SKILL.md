@@ -33,6 +33,8 @@ For each implementation unit:
 ```markdown
 ### Task {N}: {title}
 - **Estimate**: 2-5 minutes (if larger, split further)
+- **Complexity**: 🟢 Routine / 🟡 Moderate / 🔴 Complex
+- **Risk**: 🟢 Safe / 🟡 Caution / 🔴 Risky
 - **Files**: List of files to create or modify
 - **Changes**: What specifically changes in each file
 - **TDD Steps**:
@@ -43,13 +45,28 @@ For each implementation unit:
 - **Dependencies**: [Task N-1] or "none"
 ```
 
+#### Complexity/Risk 기준
+
+| 지표 | 🟢 | 🟡 | 🔴 |
+|------|-----|-----|-----|
+| **Complexity** | 단일 파일, 패턴 반복 | 2-3파일 연동, 새 패턴 도입 | 4+파일, 기존 인터페이스 변경 |
+| **Risk** | 기존 테스트로 검증 가능 | 새 테스트 필요, 부분적 영향 | 공유 상태 변경, 롤백 어려움 |
+
+- 🔴 Complex 태스크는 반드시 5분 이내로 분할 가능한지 재검토
+- 🔴 Risky 태스크는 **별도 배치로 격리** — 다른 태스크와 같은 배치에 묶지 않음
+
 ### Phase 3: Ordering & Batching
 1. Sort by dependency order
 2. Identify parallelizable tasks
-3. Group into batches of 3 for execution checkpoints:
+3. Group into batches of 3 for execution checkpoints
+4. 🔴 Risky 태스크는 단독 배치 또는 배치 첫 번째에 배치
+5. 각 배치에 **Batch Summary** 추가:
    ```
    --- Batch 1 (Tasks 1-3) → checkpoint ---
-   --- Batch 2 (Tasks 4-6) → checkpoint ---
+   Complexity: 🟢🟢🟡  Risk: 🟢🟢🟡  예상: ~10min
+
+   --- Batch 2 (Task 4) → checkpoint [isolated: risky] ---
+   Complexity: 🔴  Risk: 🔴  예상: ~5min
    ```
 
 ### Phase 4: Plan Review Loop
@@ -81,6 +98,17 @@ If you're in a workflow, return to the workflow orchestrator.
 - Each task: 2-5 minutes, at most 5 files
 - Each task: independently verifiable
 - Assume implementing agent has ZERO codebase context — be explicit
+
+## Domain Context
+
+**방법론 근거**: 태스크 분해(Work Breakdown Structure)는 프로젝트 관리의 핵심 기법으로, PMI의 PMBOK Guide에서 체계화되었다. "2-5분 단위 태스크"는 Pomodoro Technique과 소프트웨어 개발의 "작은 커밋" 원칙을 결합한 것이다.
+
+**핵심 원리**: 태스크가 작을수록 (1) 실패 시 되돌리기 쉽고, (2) TDD 사이클이 빠르고, (3) 리뷰가 용이하다. "구현 에이전트에 컨텍스트가 없다고 가정"하는 것은 에이전트 간 암묵지 의존을 차단하는 안전장치다.
+
+### Further Reading
+- Kent Beck, *Extreme Programming Explained* — 작은 릴리스와 점진적 설계
+- Mike Cohn, *User Stories Applied* — 스토리 분할과 INVEST 기준
+- Basecamp, [Shape Up](https://basecamp.com/shapeup) — Appetite 기반 스코프 관리
 
 ## Rules
 - Include TDD steps for every task
