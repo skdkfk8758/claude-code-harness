@@ -177,6 +177,17 @@ KB가 비어있을 때의 초기 파일:
 
 ---
 
+## Domain Context
+
+**방법론 근거**: Error Knowledge Base는 항공·의료 산업의 사고 보고 시스템(Aviation Safety Reporting System, NASA 1976)과 소프트웨어 분야의 Post-Incident Review 문화에서 착안했다. "같은 실수를 반복하지 않는 것"이 조직 학습의 핵심이다.
+
+**핵심 원리**: 실수 자체보다 "실수에서 추출한 예방규칙"이 자산이다. 패턴화된 교훈은 미래의 유사 작업에 자동 주입되어 사전 방지 역할을 한다.
+
+### Further Reading
+- John Allspaw, [Blameless PostMortems](https://www.etsy.com/codeascraft/blameless-postmortems/) — Etsy의 비난 없는 사후 분석 문화
+- Sidney Dekker, *The Field Guide to Understanding 'Human Error'* — 시스템 관점의 실수 분석
+- Google SRE Book, Ch.15 [Postmortem Culture](https://sre.google/sre-book/postmortem-culture/) — 포스트모템 작성과 조직 학습
+
 ## Rules
 - extract 시 investigation 문서가 없으면 git diff + 커밋 메시지로 대체 추출
 - record 시 질문은 2개 이하로 제한 (CLAUDE.md 인터뷰 규칙 준수)

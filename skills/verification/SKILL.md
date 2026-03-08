@@ -109,6 +109,16 @@ verification 규칙 미준수: 테스트/빌드 실행 증거가 부족합니다
 실제 명령을 실행하고, 전체 출력 결과를 포함하여 재보고하세요.
 ```
 
+## Domain Context
+
+**방법론 근거**: "증거 기반 검증"은 Continuous Delivery(Jez Humble & David Farley, 2010)의 핵심 원칙이다. 모든 변경은 자동화된 파이프라인을 통해 검증되어야 하며, "작동한다고 생각하는 것"과 "작동한다는 증거가 있는 것"은 근본적으로 다르다.
+
+**핵심 원리**: 인간의 확증 편향(confirmation bias)은 "방금 고친 코드가 작동할 것"이라는 믿음을 만든다. IDENTIFY-RUN-READ-VERIFY-CLAIM 프로토콜은 이 편향을 구조적으로 차단한다.
+
+### Further Reading
+- Jez Humble & David Farley, *Continuous Delivery* (Addison-Wesley, 2010) — 배포 파이프라인과 검증 자동화
+- Michael Bolton, [Testing vs. Checking](https://www.developsense.com/blog/2009/08/testing-vs-checking/) — 기계적 확인과 탐색적 테스트의 구분
+
 ## Rules
 - This is not optional — it applies to every agent and skill
 - If you cannot run verification (no test command, no build), state that explicitly instead of claiming success

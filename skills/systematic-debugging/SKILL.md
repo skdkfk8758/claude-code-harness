@@ -111,6 +111,18 @@ Bug reported → Phase 1 (investigate) → Phase 2 (patterns)
             → If 3+ fails, ESCALATE to architecture review
 ```
 
+## Domain Context
+
+**방법론 근거**: 체계적 디버깅은 Andreas Zeller의 *Why Programs Fail* (2009)에서 정립된 과학적 디버깅 방법론에 기반한다. "관찰 → 가설 → 실험 → 검증"의 과학적 방법을 소프트웨어 결함 분석에 적용한다.
+
+**핵심 원리**: 버그의 증상(symptom)과 근본원인(root cause)은 다르다. 증상만 보고 수정하면 같은 결함이 다른 형태로 재발한다. Phase 1-3의 조사 과정이 "진짜 원인"을 찾는 유일한 경로다.
+
+### Further Reading
+- Andreas Zeller, *Why Programs Fail: A Guide to Systematic Debugging* (Morgan Kaufmann, 2009)
+- David J. Agans, *Debugging: The 9 Indispensable Rules* — 실무 디버깅 9원칙
+- Julia Evans, [Debugging Zine](https://wizardzines.com/zines/debugging/) — 시각적 디버깅 가이드
+- Google SRE Book, Ch.12 [Effective Troubleshooting](https://sre.google/sre-book/effective-troubleshooting/) — 대규모 시스템 장애 분석 프레임워크
+
 ## Rules
 - NEVER skip to Phase 4 — even if you "know" the fix
 - NEVER apply a fix without a reproduction test

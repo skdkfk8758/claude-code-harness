@@ -127,6 +127,17 @@ After completing each task:
 | `chore: update` | Vague | `chore(deps): bump axios to 1.6.0` |
 | Committing `.env`, logs | Security/noise | Check `.gitignore` before staging |
 
+## Domain Context
+
+**방법론 근거**: Conventional Commits는 Angular 커밋 컨벤션에서 파생되어 [conventionalcommits.org](https://www.conventionalcommits.org/)에서 표준화된 스펙이다. 구조화된 커밋 메시지는 자동 버전 관리(Semantic Versioning), 체인지로그 생성, 코드 리뷰 효율화를 가능하게 한다.
+
+**핵심 원리**: 커밋 메시지는 "미래의 나"와 "동료"를 위한 문서다. type은 변경의 성격을, scope은 영향 범위를, description은 의도를 전달한다.
+
+### Further Reading
+- [Conventional Commits Spec v1.0.0](https://www.conventionalcommits.org/en/v1.0.0/)
+- Chris Beams, [How to Write a Git Commit Message](https://cbea.ms/git-commit/) — 7가지 커밋 메시지 규칙
+- Semantic Versioning, [semver.org](https://semver.org/) — type과 버전 번호의 관계
+
 ## Enforcement Verification
 
 When this skill is used with `enforcement: enforce` in a workflow step, the orchestrator verifies compliance by checking commits made during the step. The following checks are performed automatically:
