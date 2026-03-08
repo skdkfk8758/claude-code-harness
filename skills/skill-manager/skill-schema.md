@@ -93,6 +93,8 @@ Plugin root: !`echo ${CLAUDE_PLUGIN_ROOT}`
 | SK014 | info | All frontmatter fields are recognized (no unknown keys) |
 | SK015 | warn | Cross-cutting skills used with `enforcement: enforce` in any workflow have `## Enforcement Verification` section |
 | SK016 | warn | If `user-invocable: true` and has `argument-hint` with subcommands (`\|` separator), must have `## Input Resolution` section with NL→Command Map |
+| SK017 | info | Has `## Domain Context` section with methodology references (pm-skills 패턴) |
+| SK018 | warn | Body references to other skills/agents (e.g., `skill: X`, `/X`, `agent: X`) must point to existing components (ghost reference check) |
 
 ---
 

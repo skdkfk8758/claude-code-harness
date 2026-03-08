@@ -1,9 +1,9 @@
 ---
 name: skill-manager
-description: Use when adding, removing, editing, or validating skills and agents. Manages SKILL.md and agent .md files with schema validation and config sync.
+description: Use when adding, removing, editing, or validating skills and agents. Manages SKILL.md and agent .md files with schema validation and config sync. Also discovers external skills from skills.sh and GitHub.
 user-invocable: true
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
-argument-hint: "list | show <name> | create-skill <name> | create-agent <name> | edit <name> | delete <name> | validate [name] | deps"
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion, WebSearch
+argument-hint: "list | show <name> | create-skill <name> | create-agent <name> | edit <name> | delete <name> | validate [name] | deps | discover <query>"
 ---
 
 # Skill & Agent Manager
@@ -34,6 +34,7 @@ Plugin root: !`echo ${CLAUDE_PLUGIN_ROOT:-$(dirname $(dirname ${CLAUDE_SKILL_DIR
 | 검증, 확인, 유효, validate, check | `validate [name]` |
 | 의존성, 참조, 누가 쓰는, deps, dependency | `deps` |
 | 영향, 바꾸면, impact, 뭐가 깨져 | `impact <name>` |
+| 검색, 찾아줘, 외부, discover, search, find skill | `discover <query>` |
 
 이름 추출: 자연어에서 기존 스킬/에이전트명과 매칭되는 단어를 `<name>`으로 사용. 매칭 불가 시 사용자에게 질문.
 
@@ -50,6 +51,7 @@ Plugin root: !`echo ${CLAUDE_PLUGIN_ROOT:-$(dirname $(dirname ${CLAUDE_SKILL_DIR
 | `validate [name]` | Validate schema compliance |
 | `deps` | Dependency analysis — who references whom |
 | `impact <name>` | Impact analysis — what breaks if this changes |
+| `discover <query>` | Search external skills from skills.sh and GitHub |
 | (no argument) | Show help |
 
 ## Paths
@@ -351,13 +353,24 @@ If no name, validate ALL skills and agents.
 ### Process
 
 1. Read `skill-schema.md` from this skill's directory
-2. For skills: apply rules SK001-SK011
+2. For skills: apply rules SK001-SK016
 3. For agents: apply rules AG001-AG007
-4. Check cross-references:
-   - Skills referenced in workflow YAMLs exist
-   - Agents referenced in workflow YAMLs exist
+4. **Ghost Reference Detection** (유령 참조 탐지):
+   - Skills referenced in workflow YAMLs exist (skill: {name}, cross-cutting name: {name})
+   - Agents referenced in workflow YAMLs exist (agent: {name}, agents: [{name}], fix-agent: {name})
    - skill-rules.json entries match existing skills
-5. Output:
+   - Skill body 내 다른 스킬/에이전트 참조가 실제 존재하는지 확인
+   - 워크플로우 YAML의 `input`/`output` 경로에 사용된 `{date}`, `{name}` 외 변수가 없는지 확인
+5. **Duplicate Detection** (중복 탐지):
+   - 모든 스킬 쌍의 description 유사도 검사 (80% 이상 유사 시 경고)
+   - 모든 에이전트 쌍의 description 유사도 검사
+   - 스킬-에이전트 간 이름 충돌 검사
+6. **Structural Integrity** (구조 무결성):
+   - 모든 스킬 디렉토리에 SKILL.md 존재 확인
+   - 모든 워크플로우 YAML이 유효한 YAML 구문인지 확인 (`yq` 또는 수동 파싱)
+   - Cross-cutting `enforcement: enforce` 스킬에 `## Enforcement Verification` 섹션 존재 확인 (SK015)
+   - 워크플로우 step의 `type` 값이 유효한지 확인 (skill/agent/agent-chain/parallel/conditional)
+7. Output:
 
 ```
 Validating skills...
@@ -377,6 +390,20 @@ Cross-references...
  ✓ All workflow skill references valid
  ✓ All workflow agent references valid
  ⚠ skill-rules.json has entry "workflow-manager" but no matching promptTrigger update needed
+
+Ghost references...
+──────────────────────────────
+ ✓ No ghost references found
+
+Duplicates...
+──────────────────────────────
+ ✓ No duplicate descriptions found
+
+Structural integrity...
+──────────────────────────────
+ ✓ All skill directories have SKILL.md
+ ✓ All workflow YAMLs are valid
+ ✓ All enforce cross-cutting skills have Enforcement Verification section
 
 Summary: 0 errors, 3 warnings, 0 info
 ```
@@ -518,6 +545,79 @@ Checklist:
   [ ] refactor implementation step 동작 확인
   [ ] tdd/verification/git-convention 규칙과의 호환성 확인
 ```
+
+---
+
+## Discover Handler
+
+외부 소스에서 스킬을 검색하고, 선택적으로 설치한다.
+
+### Step 1: 쿼리 확인
+
+인자가 없으면 질문:
+```
+어떤 종류의 도구를 찾고 계신가요? (예: react, docker, kubernetes, testing)
+```
+
+### Step 2: 로컬 확인
+
+먼저 이미 설치된 스킬 중 매칭되는 것을 확인:
+```
+Glob: {plugin-root}/skills/*/SKILL.md
+Grep: 쿼리 키워드로 검색
+```
+
+### Step 3: 외부 검색
+
+**Source 1 — skills.sh** (우선):
+```bash
+npx skills find {query}
+```
+출력 파싱하여 스킬명, owner/repo, 설치 수 추출.
+
+**Source 2 — GitHub** (skills.sh 결과 3개 미만일 때만):
+```
+WebSearch: site:github.com "SKILL.md" claude {query}
+```
+
+### Step 4: 결과 표시
+
+```
+검색 결과: "{query}"
+
+| # | 이름 | 출처 | 설명 | 상태 |
+|---|------|------|------|------|
+| 1 | react-patterns | 로컬 | React 패턴 및 hooks | 설치됨 |
+| 2 | react-best-practices | skills.sh | React 개발 패턴 (12K+) | 미설치 |
+| 3 | react-pro | github | React 베스트 프랙티스 | 미설치 |
+
+설치할 번호를 선택하세요 (여러 개: 1,2 / 취소: cancel)
+```
+
+결과 없으면:
+```
+"{query}"에 맞는 도구를 찾지 못했습니다. 다른 키워드로 시도해보세요.
+```
+
+### Step 5: 설치
+
+사용자가 번호를 선택하면:
+
+1. **이미 설치됨**: "이미 사용 가능한 도구입니다" 안내
+2. **skills.sh**: `npx skills add -y -g {owner/repo}` 실행
+3. **GitHub**: SKILL.md raw URL을 다운로드하여 `{plugin-root}/skills/{name}/SKILL.md`에 저장
+
+설치 후:
+1. 파일 존재 및 비어있지 않은지 확인
+2. `validate` 핸들러 실행 — 스키마 준수 검증
+3. 검증 실패 시 사용자에게 경고 표시 (설치는 유지하되 문제점 고지)
+4. `skill-rules.json` 동기화
+
+### Constraints
+
+- 설치 전 항상 사용자 확인 필요
+- 설치된 스킬은 반드시 validate 통과 후 사용 가능
+- "스킬", "플러그인" 용어 사용 금지 — "도구", "전문 기능"으로 표현
 
 ---
 
