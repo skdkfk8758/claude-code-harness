@@ -17,7 +17,7 @@ steps:
     skill: brainstorming
     description: 리팩토링 전략 검토 — 접근법 비교, 리스크 평가, 사용자 승인
     input: docs/plans/{date}-{name}-refactor-analysis.md
-    gate: user-approval
+    gate: approval
 
   - id: planning
     type: agent-chain
@@ -33,7 +33,7 @@ steps:
     skill: writing-plans
     description: 리팩토링 태스크 분해 — 각 단계가 독립적으로 동작 가능하도록 구성
     input: docs/plans/{date}-{name}-plan.md
-    gate: user-approval
+    gate: checkpoint
 
   - id: implementation
     type: agent
@@ -107,4 +107,8 @@ steps:
     type: skill
     skill: finishing-branch
     description: 전체 테스트 통과 확인 후 merge/PR/keep/discard 선택
-    gate: user-approval
+    gate: approval
+
+next-suggestions:
+  - workflow: feature-dev
+    condition: "리팩토링 후 기능 개발 시작"

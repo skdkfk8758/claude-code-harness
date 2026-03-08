@@ -171,6 +171,18 @@ TDD 규칙 미준수: RED-GREEN-REFACTOR 사이클 증거가 부족합니다.
 각 태스크에 대해 (1) 실패하는 테스트 실행 결과, (2) 통과하는 테스트 실행 결과를 포함하여 재보고하세요.
 ```
 
+## Domain Context
+
+**방법론 근거**: Test-Driven Development는 Kent Beck이 *Test-Driven Development: By Example* (2002)에서 체계화한 소프트웨어 개발 방법론이다. "테스트가 설계를 주도한다"는 핵심 원칙은 이후 Extreme Programming, Continuous Delivery 등의 기반이 되었다.
+
+**핵심 원리**: RED-GREEN-REFACTOR 사이클은 단순한 테스트 작성 순서가 아니라, 코드 설계를 점진적으로 발견하는 프로세스다. 실패하는 테스트가 인터페이스를 정의하고, 최소 구현이 계약을 충족하며, 리팩토링이 설계를 개선한다.
+
+### Further Reading
+- Kent Beck, *Test-Driven Development: By Example* (Addison-Wesley, 2002)
+- Martin Fowler, [Is TDD Dead?](https://martinfowler.com/articles/is-tdd-dead/) — TDD의 한계와 적용 범위에 대한 균형 잡힌 논의
+- Robert C. Martin, *Clean Code* Ch.9 — Unit Tests 작성 원칙
+- Gerard Meszaros, *xUnit Test Patterns* — AAA 패턴, 테스트 더블, 테스트 냄새의 체계적 분류
+
 ## Integration with Workflow
 
 When executing tasks from a task plan:

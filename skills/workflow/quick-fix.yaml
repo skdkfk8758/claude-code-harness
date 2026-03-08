@@ -61,4 +61,8 @@ steps:
     type: skill
     skill: finishing-branch
     description: 테스트 통과 확인 후 merge/PR/keep/discard 선택
-    gate: user-approval
+    gate: approval
+
+next-suggestions:
+  - workflow: bugfix
+    condition: "근본적인 수정이 필요한 경우"

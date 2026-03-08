@@ -26,12 +26,22 @@ You will be given a research topic or technical question.
 
 ## Process
 
-### 1. Question Decomposition
+### 1. Version Detection (라이브러리 조사 시)
+
+라이브러리/프레임워크 관련 조사일 때, 검색 전에 프로젝트 버전을 먼저 파악:
+
+1. `package.json` → `dependencies` + `devDependencies`에서 대상 라이브러리 버전 확인
+2. `requirements.txt` / `pyproject.toml` / `Cargo.toml` → 동일하게 버전 확인
+3. 버전 확인 실패 → "latest" 기준으로 조사, 결과에 "버전 미확인 — latest 기준" 플래그
+
+검색 쿼리에 버전을 반드시 포함: `"Next.js 14 App Router caching"` (버전 없는 일반 쿼리 금지)
+
+### 2. Question Decomposition
 연구 질문을 **atomic sub-question**으로 분해한 후 각각에 대해 검색 수행.
 - 복합 질문을 그대로 검색하지 않음
 - 각 sub-question별로 최소 2개 쿼리 변형 생성
 
-### 2. Query Generation
+### 3. Query Generation
 Sub-question당 2-5개 검색 쿼리 변형 (전체 최소 5개 이상):
 - Direct question format
 - Error message fragments (if debugging)
@@ -39,15 +49,36 @@ Sub-question당 2-5개 검색 쿼리 변형 (전체 최소 5개 이상):
 - GitHub Issues format: `repo:org/name keyword`
 - Stack Overflow format: `[tag] keyword`
 
-### 3. Search Execution
+### 4. Documentation Lookup (Fallback Chain)
+
+**공식 문서를 항상 최우선으로 조회.** 아래 순서대로 시도하고, 성공하면 중단:
+
+| 순서 | 방법 | 설명 |
+|------|------|------|
+| 1 | **context7 MCP** | `resolve-library-id` → `query-docs`로 조회. 가장 정확하고 빠름 |
+| 2 | **llms.txt** | `{도메인}/llms.txt` 또는 `{도메인}/llms-full.txt` fetch 시도 |
+| 3 | **GitHub 소스** | 라이브러리 GitHub repo의 `/docs` 또는 `/README.md` 직접 조회 |
+| 4 | **WebSearch** | `"{library} {version} official documentation {keyword}"` 검색 |
+
+**Fallback 로그** — 어떤 경로로 정보를 얻었는지 반드시 기록:
+```
+[docs] context7에서 Next.js 14 App Router 문서 조회 성공
+[docs] context7 실패 → llms.txt에서 조회 성공
+[docs] 모든 경로 실패 → WebSearch fallback 사용 (신뢰도 하향)
+```
+
+context7 또는 llms.txt에서 조회한 내용은 **Tier S** (공식 문서 동등).
+WebSearch fallback은 출처에 따라 Tier 부여 (자동 S 아님).
+
+### 5. Search Execution
 Search these sources in priority order:
-1. **Official documentation** (Tier S) — always check first
+1. **Official documentation** (Tier S) — Documentation Lookup chain으로 먼저 확보
 2. **GitHub Issues/Discussions** (Tier B-A) — real-world problems and solutions
 3. **Stack Overflow** (Tier B) — community-validated answers
 4. **Technical blogs** (Tier A-C) — in-depth explanations
 5. **Reddit** (Tier C) — recent experiences
 
-### 4. Cross-Verification Matrix
+### 6. Cross-Verification Matrix
 **모든 사실적 주장(factual claim)에 대해 2개 이상 독립 출처로 교차 검증:**
 
 ```markdown
@@ -62,7 +93,7 @@ Search these sources in priority order:
 - **⚠️ Unverified**: 단일 출처만 존재
 - **⚡ Contested**: 출처 간 상충
 
-### 5. Result Compilation
+### 7. Result Compilation
 For each relevant finding:
 - **Source**: Direct URL
 - **Tier**: S / A / B / C
@@ -70,7 +101,7 @@ For each relevant finding:
 - **Summary**: Key takeaway in 2-3 sentences
 - **Applicability**: How it relates to our specific context
 
-### 6. Synthesis
+### 8. Synthesis
 Compile findings into a structured report:
 ```markdown
 ## Research: {topic}

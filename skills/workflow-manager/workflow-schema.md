@@ -26,15 +26,26 @@ steps:
 
 ## Step Types
 
-### type: skill (Gate — user must invoke manually)
+### type: skill (Auto-Dispatch with Gate Level)
 ```yaml
 - id: design
   type: skill
   skill: brainstorming       # must exist in skills/ directory
   description: "..."
   output: docs/plans/{date}-{name}-design.md    # optional
-  gate: user-approval        # required for skill type
+  input: docs/plans/{date}-{name}-analysis.md   # optional, passed to skill agent
+  gate: approval             # approval | checkpoint | auto (default: approval)
 ```
+
+Gate levels:
+
+| Level | 동작 |
+|-------|------|
+| `approval` | 자동 실행 → 결과 표시 → 사용자 명시적 승인 대기 |
+| `checkpoint` | 자동 실행 → 요약 표시 → 사용자 개입 없으면 자동 진행 |
+| `auto` | 자동 실행 → 로그만 출력 → 자동 진행 |
+
+하위 호환: `gate: user-approval` → `gate: approval`로 자동 매핑.
 
 ### type: agent (Executor — automatic dispatch)
 ```yaml
@@ -164,7 +175,8 @@ If the section is missing, enforcement falls back to `suggest` with a warning.
 | WF006 | error | `type: skill` has `skill` field referencing existing skill |
 | WF007 | error | `type: agent` has `agent` field referencing existing agent |
 | WF008 | error | `type: agent-chain` has `agents` array with existing agents |
-| WF009 | warn | First or last step should be a gate |
+| WF009 | warn | First or last step should have `gate: approval` |
+| WF018 | warn | `gate` value must be one of: approval, checkpoint, auto, user-approval (legacy) |
 | WF010 | warn | `cross-cutting` references existing skills |
 | WF011 | info | Output paths use template variables |
 | WF012 | error | `type: parallel` has `steps` array with valid sub-step definitions |

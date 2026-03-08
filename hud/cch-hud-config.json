@@ -3,5 +3,7 @@
   "showGitBranch": true,
   "showWorktree": true,
   "showWorkflow": true,
-  "showTokenUsage": true
+  "showTokenUsage": true,
+  "showSessionDuration": true,
+  "contextMode": "both"
 }

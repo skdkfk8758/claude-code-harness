@@ -10,7 +10,7 @@
  * Config: hud/cch-hud-config.json (relative to plugin root)
  */
 
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, mkdirSync, openSync, readSync, closeSync } from "node:fs";
 import { execSync } from "node:child_process";
 import https from "node:https";
 import { join, dirname, basename, resolve } from "node:path";
@@ -47,6 +47,8 @@ function loadConfig() {
     showWorktree: true,
     showWorkflow: true,
     showTokenUsage: true,
+    showSessionDuration: true,
+    contextMode: "both",
   };
   try {
     if (existsSync(configPath)) {
@@ -104,6 +106,31 @@ function getWorktreeInfo() {
   return null;
 }
 
+// --- Session Duration ---
+function getSessionDuration() {
+  const transcriptPath = _stdinData?.transcript_path;
+  if (!transcriptPath || !existsSync(transcriptPath)) return null;
+
+  try {
+    const fd = openSync(transcriptPath, 'r');
+    const buf = Buffer.alloc(512);
+    readSync(fd, buf, 0, 512, 0);
+    closeSync(fd);
+    const firstLine = buf.toString('utf8').split('\n')[0];
+    if (!firstLine) return null;
+    const entry = JSON.parse(firstLine);
+    const ts = entry.timestamp || entry.ts;
+    if (!ts) return null;
+    const mins = Math.floor((Date.now() - new Date(ts).getTime()) / 60000);
+
+    if (mins < 1) return `${c.dim}<1m${c.reset}`;
+    if (mins < 60) return `${c.dim}${mins}m${c.reset}`;
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return `${c.dim}${h}h ${m}m${c.reset}`;
+  } catch { return null; }
+}
+
 // --- v3 Workflow State ---
 function getWorkflowStatus() {
   const statePath = join(process.cwd(), ".claude", "workflow-state.json");
@@ -145,11 +172,20 @@ function getWorkflowStatus() {
       currentStatus = "pending";
     }
 
-    // Determine step type indicator
+    // Progress mini-bar (5 chars fixed width)
+    const completedCount = stepIds.filter(id => steps[id]?.status === "completed").length;
+    const progressWidth = 5;
+    const filled = Math.round((completedCount / (typeof total === "number" ? total : 1)) * progressWidth);
+    const progressBar = `${c.green}${"█".repeat(filled)}${c.dim}${"░".repeat(progressWidth - filled)}${c.reset}`;
+
+    // Current step gate level
+    const gateLevel = steps[currentId]?.gateLevel;
+    const gateTag = gateLevel ? ` ${c.dim}[${gateLevel}]${c.reset}` : '';
+
     const stepColor = currentStatus === "in-progress" ? c.cyan : c.yellow;
     const stepNum = currentStep || (stepIds.indexOf(currentId) + 1);
 
-    return `${c.bold}WF:${c.cyan}${wf}${c.reset}${c.dim}(${name})${c.reset} ${stepColor}${stepNum}/${total}${c.reset} ${c.white}${currentId}${c.reset}`;
+    return `${c.bold}WF:${c.cyan}${wf}${c.reset}${c.dim}(${name})${c.reset} ${progressBar} ${stepColor}${stepNum}/${total}${c.reset} ${c.white}${currentId}${c.reset}${gateTag}`;
   } catch {
     return `${c.yellow}WF:error${c.reset}`;
   }
@@ -157,8 +193,8 @@ function getWorkflowStatus() {
 
 // --- Rate Limit API ---
 const RATE_CACHE_PATH = join(process.env.HOME || "", ".claude", "hud", ".rate-limit-cache.json");
-const RATE_CACHE_TTL_MS = 30_000;
-const RATE_ERROR_TTL_MS = 60_000;
+const RATE_SUCCESS_TTL_MS = 60_000;  // 성공: 60초 캐시 (API 부하 감소)
+const RATE_ERROR_TTL_MS = 15_000;    // 실패: 15초 후 빠른 재시도
 
 function readRateCache() {
   try {
@@ -230,7 +266,7 @@ async function getRateLimitData() {
   const cache = readRateCache();
   if (cache) {
     const age = Date.now() - cache.timestamp;
-    const ttl = cache.error ? RATE_ERROR_TTL_MS : RATE_CACHE_TTL_MS;
+    const ttl = cache.error ? RATE_ERROR_TTL_MS : RATE_SUCCESS_TTL_MS;
     if (age < ttl) return cache.data;
   }
 
@@ -276,7 +312,7 @@ function resetInfo(isoStr) {
   return h > 0 ? `${h}h${m}m` : `${m}m`;
 }
 
-async function getTokenUsage() {
+async function getTokenUsage(config) {
   const parts = [];
 
   // Rate limits
@@ -299,7 +335,16 @@ async function getTokenUsage() {
   const ctx = _stdinData?.context_window;
   if (ctx?.used_percentage != null) {
     const pct = Math.round(ctx.used_percentage);
-    ctxParts.push(`${c.dim}ctx${c.reset}${bar(pct)}${pctColor(pct)}${pct}%${c.reset}`);
+    const used = Math.round((ctx.total_tokens || 0) / 1000);
+    const max = Math.round((ctx.max_tokens || 200000) / 1000);
+
+    if (config.contextMode === 'tokens') {
+      ctxParts.push(`${c.dim}ctx${c.reset}${bar(pct)}${c.dim}${used}k/${max}k${c.reset}`);
+    } else if (config.contextMode === 'both') {
+      ctxParts.push(`${c.dim}ctx${c.reset}${bar(pct)}${pctColor(pct)}${pct}%${c.reset}${c.dim}(${used}k/${max}k)${c.reset}`);
+    } else {
+      ctxParts.push(`${c.dim}ctx${c.reset}${bar(pct)}${pctColor(pct)}${pct}%${c.reset}`);
+    }
   }
   const cost = _stdinData?.cost?.total_cost_usd;
   if (cost != null && cost > 0) {
@@ -326,12 +371,16 @@ async function main() {
     const wt = getWorktreeInfo();
     if (wt) line1.push(wt);
   }
+  if (config.showSessionDuration) {
+    const dur = getSessionDuration();
+    if (dur) line1.push(dur);
+  }
   process.stdout.write(`${line1.join(sep)}\n`);
 
   // Line 2: usage | workflow
   const line2 = [];
   if (config.showTokenUsage) {
-    const usage = await getTokenUsage();
+    const usage = await getTokenUsage(config);
     if (usage) line2.push(usage);
   }
   if (config.showWorkflow) {

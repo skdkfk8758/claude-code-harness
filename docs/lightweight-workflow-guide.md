@@ -20,7 +20,7 @@ steps:                       # 스텝 목록 (순서대로 실행)
 
 ### 스텝 유형별 필드
 
-#### `type: skill` (Gate — 사용자 승인 필요)
+#### `type: skill` (Auto-Dispatch — gate 레벨에 따라 처리)
 ```yaml
 - id: design
   type: skill
@@ -28,8 +28,13 @@ steps:                       # 스텝 목록 (순서대로 실행)
   description: 설명
   input: docs/plans/...      # 선택: 이전 스텝 산출물 경로
   output: docs/plans/...     # 선택: 산출물 저장 경로
-  gate: user-approval        # 사용자 승인 필수
+  gate: approval             # approval | checkpoint | auto
 ```
+
+Gate 레벨:
+- `approval`: 자동 실행 → 결과 표시 → 사용자 명시적 승인 대기
+- `checkpoint`: 자동 실행 → 요약 표시 → 개입 없으면 자동 진행
+- `auto`: 자동 실행 → 로그만 출력 → 자동 진행
 
 #### `type: agent` (Auto — 자동 실행)
 ```yaml
@@ -73,7 +78,7 @@ steps:                       # 스텝 목록 (순서대로 실행)
 ## 경량 워크플로우 설계 원칙
 
 1. **3단계 이하** — 경량의 의미는 빠르게 끝나는 것
-2. **Gate는 최소화** — 마지막 completion만 Gate로, 나머지는 Auto
+2. **Gate는 최소화** — completion은 `approval`, 중간 검증은 `checkpoint`, 절차적 스텝은 `auto`
 3. **enforce 활용** — 게이트가 적은 만큼 자동 검증을 강하게
 4. **retry-on-fail 필수** — 사람이 개입할 Gate가 적으므로 자동 복구가 중요
 
@@ -105,7 +110,7 @@ steps:
   - id: completion
     type: skill
     skill: finishing-branch
-    gate: user-approval
+    gate: approval
 ```
 
 ### 추가 예시: quick-docs
@@ -123,7 +128,7 @@ steps:
   - id: completion
     type: skill
     skill: finishing-branch
-    gate: user-approval
+    gate: approval
 ```
 
 ## 워크플로우 추가 절차

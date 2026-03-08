@@ -9,16 +9,20 @@ steps:
     description: |
       skill-manager 인터뷰를 통해 스킬 또는 에이전트 생성
       create-skill / create-agent 명령 실행
-    gate: user-approval
+    gate: approval
 
   - id: validation
     type: skill
     skill: verification
     description: 생성된 스킬/에이전트 검증 — validate 통과 확인
-    gate: user-approval
+    gate: checkpoint
 
   - id: completion
     type: skill
     skill: finishing-branch
     description: 테스트 통과 확인 후 merge/PR/keep/discard 선택
-    gate: user-approval
+    gate: approval
+
+next-suggestions:
+  - workflow: feature-dev
+    condition: "새 스킬을 활용한 기능 개발"
