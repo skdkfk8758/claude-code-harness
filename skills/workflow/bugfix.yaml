@@ -97,3 +97,9 @@ steps:
     skill: finishing-branch
     description: 테스트 통과 확인 후 merge/PR/keep/discard 선택
     gate: approval
+
+next-suggestions:
+  - workflow: feature-dev
+    condition: "기능 개발로 복귀"
+  - workflow: refactor
+    condition: "버그 근본 원인이 구조적 문제인 경우"

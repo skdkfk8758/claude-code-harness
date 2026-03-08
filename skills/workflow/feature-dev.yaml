@@ -10,6 +10,22 @@ steps:
     output: docs/plans/{date}-{name}-design.md
     gate: approval
 
+  - id: tech-research
+    type: conditional
+    condition:
+      check: command
+      run: "grep -q 'research-needed:\\|리서치 필요:\\|기술 조사 필요' docs/plans/{date}-{name}-design.md 2>/dev/null"
+    then:
+      agent: web-research-specialist
+      id: research-execution
+    description: |
+      설계 문서에 리서치 필요 마커가 있을 때만 실행.
+      brainstorming에서 기술 조사가 필요하다고 판단하면 design.md에
+      `research-needed: [주제]` 마커를 포함시켜 이 스텝을 트리거.
+      web-research-specialist가 문서 fallback 체인으로 공식 문서 + 교차 검증 수행.
+    output: docs/plans/{date}-{name}-research.md
+    auto: true
+
   - id: planning
     type: agent-chain
     agents:
@@ -17,6 +33,7 @@ steps:
       - plan-reviewer
     description: |
       승인된 설계 기반 2종 문서 생성 (전략+태스크개요 / 컨텍스트)
+      리서치 결과가 있으면 planner에 자동 주입
       plan-reviewer가 비판적 리뷰 후 APPROVED/NEEDS_REVISION 판정
       NEEDS_REVISION 시 planner 재호출
     output:
@@ -95,6 +112,18 @@ steps:
         enforcement: enforce
     auto: true
 
+  - id: metric-design
+    type: skill
+    skill: metric-design
+    description: |
+      성공 지표 정의 — North Star Metric, Input Metrics, Counter-Metrics.
+      설계 문서를 기반으로 "어떻게 성공을 측정할 것인가"를 정의.
+      지표가 이미 명확하거나 불필요하면 스킵 가능.
+    input: docs/plans/{date}-{name}-design.md
+    output: docs/plans/{date}-{name}-metrics.md
+    optional: true
+    gate: checkpoint
+
   - id: documentation
     type: agent
     agent: documentation-architect
@@ -109,3 +138,13 @@ steps:
       테스트 전체 통과 확인 후 4옵션 제시:
       merge locally / create PR / keep branch / discard
     gate: approval
+
+next-suggestions:
+  - workflow: bugfix
+    condition: "구현 중 발견된 이슈가 있는 경우"
+  - workflow: feature-dev
+    condition: "다음 기능 개발"
+
+# 참고: experiment-analysis 스킬은 워크플로우 step이 아닌 독립 호출용.
+# A/B 테스트 결과가 나온 후 `/experiment-analysis`로 직접 실행.
+# metric-design step에서 정의한 지표를 기반으로 실험 결과를 해석.

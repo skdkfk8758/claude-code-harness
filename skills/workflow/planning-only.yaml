@@ -9,6 +9,20 @@ steps:
     output: docs/plans/{date}-{name}-design.md
     gate: approval
 
+  - id: tech-research
+    type: conditional
+    condition:
+      check: command
+      run: "grep -q 'research-needed:\\|리서치 필요:\\|기술 조사 필요' docs/plans/{date}-{name}-design.md 2>/dev/null"
+    then:
+      agent: web-research-specialist
+      id: research-execution
+    description: |
+      설계 문서에 리서치 필요 마커가 있을 때만 실행.
+      구현 없이 계획만 산출하므로 리서치 품질이 플랜 품질에 직결.
+    output: docs/plans/{date}-{name}-research.md
+    auto: true
+
   - id: planning
     type: agent-chain
     agents:
@@ -16,6 +30,7 @@ steps:
       - plan-reviewer
     description: |
       승인된 설계 기반 전략+컨텍스트 문서 생성
+      리서치 결과가 있으면 planner에 자동 주입
       plan-reviewer가 비판적 리뷰 후 APPROVED/NEEDS_REVISION 판정
     output:
       - docs/plans/{date}-{name}-plan.md
@@ -29,3 +44,9 @@ steps:
     input: docs/plans/{date}-{name}-plan.md
     output: docs/plans/{date}-{name}-tasks.md
     gate: checkpoint
+
+next-suggestions:
+  - workflow: feature-dev
+    condition: "계획을 바탕으로 구현 시작"
+  - workflow: refactor
+    condition: "리팩토링 계획인 경우"

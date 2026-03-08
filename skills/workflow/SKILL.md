@@ -609,6 +609,70 @@ After each step completion:
 [workflow] Next: step {N+1}/{total} ({next-step-id}) — {type}
 ```
 
+## Workflow Completion & Next Suggestions
+
+마지막 step이 완료되면 (모든 step이 completed/skipped), 워크플로우 완료 처리 후
+관련 워크플로우를 제안한다.
+
+### 완료 표시
+
+```
+════════════════════════════════════════
+[workflow] ✓ "{workflow-name}: {name}" 완료
+Started: {startedAt}
+Completed: {now}
+
+Completed steps:
+  1. {step-id} ✓ — {summary}
+  2. {step-id} ✓ — {summary}
+  ...
+════════════════════════════════════════
+```
+
+### 후속 워크플로우 제안
+
+워크플로우 간 자연스러운 전환을 위해, 완료 시 관련 워크플로우를 제안한다.
+
+**Resolution 순서:**
+1. **YAML `next-suggestions` 필드** (우선) — 워크플로우 YAML 최상위에 정의
+2. **Fallback 테이블** — YAML에 `next-suggestions`가 없는 경우에만 적용
+
+**YAML 기반 제안 (우선):**
+
+워크플로우 YAML 로드 시 `next-suggestions` 필드를 파싱하여 완료 후 표시:
+
+```yaml
+next-suggestions:
+  - workflow: bugfix
+    condition: "이슈가 발견된 경우"
+  - workflow: feature-dev
+    condition: "다음 기능 개발"
+```
+
+**Fallback 테이블 (YAML에 next-suggestions 없을 때만):**
+
+| 완료 워크플로우 | 제안 후속 | 이유 |
+|----------------|----------|------|
+| `feature-dev` | `bugfix`, `feature-dev` | 이슈 수정, 다음 기능 |
+| `bugfix` | `feature-dev`, `refactor` | 복귀, 근본 구조 개선 |
+| `refactor` | `feature-dev` | 기능 개발 복귀 |
+| `quick-fix` | `bugfix` | 체계적 수정 |
+
+**제안 포맷:**
+
+```
+다음 작업을 제안합니다:
+  1. /workflow {workflow} — {condition}
+  2. /workflow {workflow} — {condition}
+
+무시하고 자유롭게 작업해도 됩니다.
+```
+
+**제안 동작 규칙:**
+- 최대 2개까지만 제안 (선택 피로 방지)
+- 사용자가 무시하면 재제안하지 않음
+- `next-suggestions`에서 참조하는 워크플로우가 실제 존재하는지 확인. 없으면 해당 항목 생략
+
 ## Agent Dispatch Red Flags
 
 When dispatching agents, NEVER:
